@@ -16,6 +16,10 @@ const state = {
   lastExportReport: null,
   rhwp: null,
   lastRenderedBytes: null,
+  previewPage: 0,
+  previewPages: 0,
+  previewZoom: 100,
+  isDirty: false,
 };
 
 const els = {
@@ -47,6 +51,11 @@ const els = {
   packageSummary: $("#packageSummary"),
   previewPane: $("#previewPane"),
   renderPreviewButton: $("#renderPreviewButton"),
+  previewPrevButton: $("#previewPrevButton"),
+  previewNextButton: $("#previewNextButton"),
+  previewPageLabel: $("#previewPageLabel"),
+  previewZoomInput: $("#previewZoomInput"),
+  previewZoomLabel: $("#previewZoomLabel"),
   templateSelect: $("#templateSelect"),
   insertTableButton: $("#insertTableButton"),
   sourceFormat: $("#sourceFormat"),
@@ -72,6 +81,13 @@ function boot() {
   els.findInput.addEventListener("input", updateSearch);
   els.replaceButton.addEventListener("click", replaceAll);
   els.renderPreviewButton.addEventListener("click", renderAccuratePreview);
+  els.previewPrevButton.addEventListener("click", () => changePreviewPage(-1));
+  els.previewNextButton.addEventListener("click", () => changePreviewPage(1));
+  els.previewZoomInput.addEventListener("input", () => {
+    state.previewZoom = Number(els.previewZoomInput.value) || 100;
+    updatePreviewControls();
+    applyPreviewZoom();
+  });
   els.templateSelect.addEventListener("change", applyParagraphTemplate);
   els.insertTableButton.addEventListener("click", insertEditableTable);
   els.copyMarkdownButton.addEventListener("click", () => copyText(toMarkdown()));
@@ -84,6 +100,7 @@ function boot() {
     button.addEventListener("click", () => {
       document.execCommand(button.dataset.command, false, null);
       els.documentSurface.focus();
+      markDirty();
       scheduleUpdate();
     });
   });
@@ -111,8 +128,18 @@ function boot() {
     }
   });
 
-  els.documentSurface.addEventListener("input", scheduleUpdate);
+  window.addEventListener("beforeunload", (event) => {
+    if (!state.isDirty) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
+
+  els.documentSurface.addEventListener("input", () => {
+    markDirty();
+    scheduleUpdate();
+  });
   els.previewPane.innerHTML = `<div class="preview-empty">No preview</div>`;
+  updatePreviewControls();
 
   if (window.lucide) window.lucide.createIcons();
   createStarterDocument();
@@ -121,6 +148,22 @@ function boot() {
 function createId() {
   if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
   return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function markDirty() {
+  if (state.isDirty) return;
+  state.isDirty = true;
+  updateDirtyStatus();
+}
+
+function markClean() {
+  state.isDirty = false;
+  updateDirtyStatus();
+}
+
+function updateDirtyStatus() {
+  els.fileNameLabel.textContent = `${state.fileName}${state.isDirty ? " (unsaved)" : ""}`;
+  document.title = `${state.isDirty ? "* " : ""}OpenHWP Studio`;
 }
 
 async function onFileInput(event) {
@@ -148,9 +191,14 @@ async function loadFile(file) {
   state.tableCount = 0;
   state.packageInfo = null;
   state.lastExportReport = null;
+  state.previewPage = 0;
+  state.previewPages = 0;
+  state.isDirty = false;
 
   els.fileNameLabel.textContent = file.name;
   els.sourceFormat.textContent = state.sourceFormat;
+  updateDirtyStatus();
+  updatePreviewControls();
 
   if (ext === "hwpx") {
     await loadHwpx(bytes);
@@ -327,6 +375,9 @@ function createStarterDocument() {
   state.tableCount = 0;
   state.packageInfo = null;
   state.lastExportReport = null;
+  state.previewPage = 0;
+  state.previewPages = 0;
+  state.isDirty = false;
   state.blocks = [
     { id: createId(), path: null, paraIndex: 0, text: "새 한글 문서", kind: "title" },
     { id: createId(), path: null, paraIndex: 1, text: "작성일: " + new Date().toLocaleDateString("ko-KR"), kind: "notice" },
@@ -336,6 +387,8 @@ function createStarterDocument() {
   els.fileNameLabel.textContent = state.fileName;
   els.sourceFormat.textContent = state.sourceFormat;
   els.previewPane.innerHTML = `<div class="preview-empty">No preview</div>`;
+  updateDirtyStatus();
+  updatePreviewControls();
   renderBlocks();
 }
 
@@ -364,6 +417,30 @@ let updateTimer = null;
 function scheduleUpdate() {
   clearTimeout(updateTimer);
   updateTimer = setTimeout(updateAll, 120);
+}
+
+function changePreviewPage(delta) {
+  if (!state.previewPages) return;
+  const next = Math.min(Math.max(state.previewPage + delta, 0), state.previewPages - 1);
+  if (next === state.previewPage) return;
+  state.previewPage = next;
+  renderAccuratePreview();
+}
+
+function updatePreviewControls() {
+  const hasPages = state.previewPages > 0;
+  els.previewPageLabel.textContent = hasPages ? `${state.previewPage + 1} / ${state.previewPages}` : "- / -";
+  els.previewPrevButton.disabled = !hasPages || state.previewPage <= 0;
+  els.previewNextButton.disabled = !hasPages || state.previewPage >= state.previewPages - 1;
+  els.previewZoomInput.value = String(state.previewZoom);
+  els.previewZoomLabel.textContent = `${state.previewZoom}%`;
+}
+
+function applyPreviewZoom() {
+  const svg = els.previewPane.querySelector("svg");
+  if (!svg) return;
+  svg.style.width = `${state.previewZoom}%`;
+  svg.style.maxWidth = "none";
 }
 
 function updateStats() {
@@ -572,9 +649,13 @@ function replaceAll() {
   const to = els.replaceInput.value;
   if (!from) return;
   clearSearchMarks();
+  let changed = false;
   for (const paragraph of $$(".paragraph")) {
-    paragraph.textContent = (paragraph.textContent || "").split(from).join(to);
+    const next = (paragraph.textContent || "").split(from).join(to);
+    if (next !== paragraph.textContent) changed = true;
+    paragraph.textContent = next;
   }
+  if (changed) markDirty();
   updateAll();
 }
 
@@ -584,6 +665,7 @@ function applyParagraphTemplate() {
   if (!node) return;
   node.classList.remove("title", "notice", "report", "normal");
   node.classList.add(els.templateSelect.value);
+  markDirty();
   updateAll();
 }
 
@@ -598,6 +680,7 @@ function insertEditableTable() {
   } else {
     page.appendChild(table);
   }
+  markDirty();
   updateAll();
 }
 
@@ -614,6 +697,7 @@ async function exportHwpx() {
       const blob = new Blob([bytes], { type: "application/hwpx" });
       downloadBlob(blob, renameExtension(state.fileName, "edited.hwpx"));
       state.lastRenderedBytes = bytes;
+      if (shouldMarkExportClean(report)) markClean();
       updateAll();
       if (report.skipped.length) {
         alert(`HWPX 저장은 완료했지만 ${report.skipped.length}개 항목은 안전하게 건너뛰고 Report에 남겼습니다.`);
@@ -630,6 +714,7 @@ async function exportHwpx() {
     const blob = new Blob([bytes], { type: "application/hwpx" });
     downloadBlob(blob, renameExtension(state.fileName, "hwpx"));
     state.lastRenderedBytes = bytes;
+    if (shouldMarkExportClean(state.lastExportReport)) markClean();
     updateAll();
   } catch (error) {
     alert(`HWPX 저장 실패: ${error.message}`);
@@ -847,9 +932,17 @@ async function exportHwpWithRhwp() {
     const bytes = doc.exportHwp();
     doc.free();
     downloadBlob(new Blob([bytes], { type: "application/x-hwp" }), renameExtension(state.fileName, "hwp"));
+    if (!state.lastExportReport || shouldMarkExportClean(state.lastExportReport)) markClean();
   } catch (error) {
     alert(`HWP 변환 실패: ${error.message}`);
   }
+}
+
+function shouldMarkExportClean(report) {
+  if (!report) return true;
+  if (report.skipped.length) return false;
+  if (report.verification && !report.verification.ok) return false;
+  return true;
 }
 
 async function renderAccuratePreview() {
@@ -860,6 +953,9 @@ async function renderAccuratePreview() {
 
   if (!state.lastRenderedBytes && !state.originalBytes) {
     els.previewPane.innerHTML = `<div class="preview-empty">No preview</div>`;
+    state.previewPages = 0;
+    state.previewPage = 0;
+    updatePreviewControls();
     return;
   }
 
@@ -873,9 +969,17 @@ async function renderAccuratePreview() {
       doc = new rhwp.HwpDocument(bytes);
       viewer = new rhwp.HwpViewer(doc);
       const pages = viewer.pageCount();
-      els.pageCount.textContent = String(pages || "-");
-      const svg = pages ? viewer.renderPageSvg(0) : "";
+      state.previewPages = pages || 0;
+      if (state.previewPages) {
+        state.previewPage = Math.min(Math.max(state.previewPage, 0), state.previewPages - 1);
+      } else {
+        state.previewPage = 0;
+      }
+      els.pageCount.textContent = String(state.previewPages || "-");
+      const svg = state.previewPages ? viewer.renderPageSvg(state.previewPage) : "";
       els.previewPane.innerHTML = svg || `<div class="preview-empty">No page</div>`;
+      applyPreviewZoom();
+      updatePreviewControls();
     } finally {
       viewer?.free?.();
       doc?.free?.();
@@ -883,6 +987,9 @@ async function renderAccuratePreview() {
     els.engineStatus.textContent = `rhwp ${rhwp.version()}`;
   } catch (error) {
     els.previewPane.innerHTML = `<div class="preview-empty">${escapeHtml(error.message)}</div>`;
+    state.previewPages = 0;
+    state.previewPage = 0;
+    updatePreviewControls();
     els.engineStatus.textContent = "HWPX ready";
   }
 }

@@ -174,6 +174,20 @@
                 <i data-lucide="scan-eye"></i>
               </button>
             </div>
+            <div class="preview-controls" aria-label="미리보기 제어">
+              <button id="previewPrevButton" class="mini-button" type="button" title="이전 쪽" aria-label="이전 쪽">
+                <i data-lucide="chevron-left"></i>
+              </button>
+              <strong id="previewPageLabel">- / -</strong>
+              <button id="previewNextButton" class="mini-button" type="button" title="다음 쪽" aria-label="다음 쪽">
+                <i data-lucide="chevron-right"></i>
+              </button>
+              <label class="zoom-control">
+                <i data-lucide="zoom-in"></i>
+                <input id="previewZoomInput" type="range" min="60" max="180" step="10" value="100" aria-label="미리보기 확대" />
+                <span id="previewZoomLabel">100%</span>
+              </label>
+            </div>
             <div id="previewPane" class="preview-pane"></div>
           </section>
 
