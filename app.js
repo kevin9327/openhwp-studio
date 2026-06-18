@@ -15,6 +15,7 @@ const state = {
   baselineTexts: new Map(),
   packageInfo: null,
   lastExportReport: null,
+  lastRepairReport: null,
   rhwp: null,
   lastRenderedBytes: null,
   previewPage: 0,
@@ -59,6 +60,7 @@ const els = {
   packageSummary: $("#packageSummary"),
   packageViewSelect: $("#packageViewSelect"),
   packageExplorer: $("#packageExplorer"),
+  autoRepairButton: $("#autoRepairButton"),
   previewPane: $("#previewPane"),
   renderPreviewButton: $("#renderPreviewButton"),
   previewPrevButton: $("#previewPrevButton"),
@@ -105,6 +107,7 @@ function boot() {
   els.templateSelect.addEventListener("change", applyParagraphTemplate);
   els.insertTableButton.addEventListener("click", insertEditableTable);
   els.packageViewSelect.addEventListener("change", updatePackageExplorer);
+  els.autoRepairButton.addEventListener("click", exportAutoRepairedHwpx);
   els.copyMarkdownButton.addEventListener("click", () => copyText(toMarkdown()));
   els.copyHtmlButton.addEventListener("click", () => copyText(toHtml()));
   els.downloadJsonButton.addEventListener("click", downloadJson);
@@ -198,6 +201,7 @@ function exposePublicApi() {
       packageInfo: state.packageInfo,
       packageDoctor: state.packageInfo?.validation || null,
       lastExportReport: state.lastExportReport,
+      lastRepairReport: state.lastRepairReport,
     }),
   });
 }
@@ -265,6 +269,7 @@ async function loadFile(file) {
   state.baselineTexts = new Map();
   state.packageInfo = null;
   state.lastExportReport = null;
+  state.lastRepairReport = null;
   state.previewPage = 0;
   state.previewPages = 0;
   state.isDirty = false;
@@ -300,6 +305,7 @@ async function loadHwpx(bytes) {
   state.tableCount = 0;
   state.packageInfo = await inspectHwpxPackage(zip, sectionPaths);
   state.lastExportReport = null;
+  state.lastRepairReport = null;
 
   for (const path of sectionPaths) {
     const xmlText = await zip.file(path).async("string");
@@ -890,6 +896,7 @@ function createStarterDocument() {
   state.baselineTexts = new Map();
   state.packageInfo = null;
   state.lastExportReport = null;
+  state.lastRepairReport = null;
   state.previewPage = 0;
   state.previewPages = 0;
   state.isDirty = false;
@@ -970,6 +977,7 @@ function updateAll() {
   updateHealth();
   updatePackageSummary();
   updatePackageExplorer();
+  updateAutoRepairButton();
   updateSearch();
 }
 
@@ -1249,6 +1257,13 @@ function updatePackageSummary() {
     );
   }
   for (const warning of info.warnings || []) appendPackageItem("주의", warning, "warn");
+  if (state.lastRepairReport) {
+    appendPackageItem(
+      "자동 수리",
+      `${state.lastRepairReport.verification?.ok ? "verified" : "needs review"}, applied ${state.lastRepairReport.applied.length}, skipped ${state.lastRepairReport.skipped.length}`,
+      state.lastRepairReport.verification?.ok ? "ok" : "warn",
+    );
+  }
 }
 
 function updatePackageExplorer() {
@@ -1284,6 +1299,17 @@ function updatePackageExplorer() {
     rest.textContent = `+${rows.length - limit} more package items`;
     els.packageExplorer.appendChild(rest);
   }
+}
+
+function updateAutoRepairButton() {
+  const autoItems = getAutoRepairItems();
+  const canRepair = !!state.zip && autoItems.length > 0;
+  els.autoRepairButton.disabled = !canRepair;
+  els.autoRepairButton.title = canRepair ? `${autoItems.length} automatic repair(s) available` : "No safe automatic repair available";
+}
+
+function getAutoRepairItems() {
+  return (state.packageInfo?.validation?.repairPlan || []).filter((item) => item.mode === "auto");
 }
 
 function getPackageExplorerRows(info, view) {
@@ -1737,6 +1763,163 @@ async function exportHwpWithRhwp() {
   }
 }
 
+async function exportAutoRepairedHwpx() {
+  try {
+    const autoItems = getAutoRepairItems();
+    if (!state.zip || !autoItems.length) {
+      alert("No safe automatic HWPX repair is available for this package.");
+      return;
+    }
+
+    els.engineStatus.textContent = "Repairing HWPX";
+    const { bytes, report } = await generateAutoRepairedHwpxBytes(autoItems);
+    state.lastRepairReport = report;
+    downloadBlob(new Blob([bytes], { type: "application/hwp+zip" }), renameExtension(state.fileName, "repaired.hwpx"));
+    els.engineStatus.textContent = report.verification?.ok ? "Repair ready" : "Repair needs review";
+    updateAll();
+  } catch (error) {
+    alert(`HWPX repair failed: ${error.message}`);
+  }
+}
+
+async function generateAutoRepairedHwpxBytes(autoItems) {
+  await waitForJsZip();
+  const sourceZip = await JSZip.loadAsync(state.originalBytes || (await state.zip.generateAsync({ type: "uint8array" })));
+  let repairZip = sourceZip;
+  const report = createRepairReport(autoItems);
+
+  for (const item of autoItems) {
+    if (item.id === "missing-mimetype") {
+      if (repairZip.file("mimetype")) {
+        report.skipped.push({ id: item.id, reason: "already-present", path: "mimetype" });
+      } else {
+        repairZip = await cloneZipWithRootMimetype(sourceZip);
+        report.applied.push({ id: item.id, path: "mimetype", value: "application/hwp+zip" });
+      }
+      continue;
+    }
+    report.skipped.push({ id: item.id, reason: "unsupported-auto-repair" });
+  }
+
+  const bytes = await repairZip.generateAsync({
+    type: "uint8array",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
+  report.verification = await verifyAutoRepair(bytes, report.applied);
+  return { bytes, report };
+}
+
+async function cloneZipWithRootMimetype(sourceZip) {
+  const repairedZip = new JSZip();
+  repairedZip.file("mimetype", "application/hwp+zip", { compression: "STORE" });
+  for (const path of Object.keys(sourceZip.files)) {
+    const sourceEntry = sourceZip.files[path];
+    if (sourceEntry.dir) {
+      repairedZip.folder(path.replace(/\/$/, ""));
+      continue;
+    }
+    const data = await sourceEntry.async("uint8array");
+    repairedZip.file(path, data, { binary: true, date: sourceEntry.date || new Date(0) });
+  }
+  return repairedZip;
+}
+
+function createRepairReport(autoItems) {
+  return {
+    mode: "auto-repair-hwpx",
+    fileName: state.fileName,
+    sourceFormat: state.sourceFormat,
+    createdAt: new Date().toISOString(),
+    requested: autoItems.map(({ id, title, mode, preview }) => ({ id, title, mode, preview })),
+    applied: [],
+    skipped: [],
+    verification: null,
+  };
+}
+
+async function verifyAutoRepair(bytes, applied) {
+  const result = { ok: true, checks: [], mismatches: [], package: null };
+  try {
+    await waitForJsZip();
+    const repairedZip = await JSZip.loadAsync(bytes);
+    const headers = inspectZipEntryHeaders(bytes);
+    result.package = compareRepairPackageEntries(repairedZip, applied);
+    if (!result.package.preservedOriginalEntries) {
+      result.mismatches.push({ reason: "original-entry-missing", missingEntries: result.package.missingOriginalEntries });
+    }
+    if (result.package.unexpectedAddedEntries.length) {
+      result.mismatches.push({ reason: "unexpected-added-entry", addedEntries: result.package.unexpectedAddedEntries });
+    }
+
+    for (const item of applied) {
+      if (item.id !== "missing-mimetype") continue;
+      const file = repairedZip.file("mimetype");
+      const value = file ? await file.async("string") : "";
+      const ok = value === "application/hwp+zip";
+      result.checks.push({ id: item.id, path: "mimetype", ok });
+      if (!ok) result.mismatches.push({ id: item.id, path: "mimetype", expected: "application/hwp+zip", actual: value || null });
+
+      const header = headers.find((entry) => entry.name === "mimetype");
+      const isFirst = headers[0]?.name === "mimetype";
+      const isStored = header?.method === 0;
+      result.checks.push({ id: "mimetype-first-entry", path: "mimetype", ok: isFirst });
+      result.checks.push({ id: "mimetype-store-compression", path: "mimetype", ok: isStored });
+      if (!isFirst) result.mismatches.push({ id: "mimetype-first-entry", expected: "first local ZIP entry", actual: headers[0]?.name || null });
+      if (!isStored) result.mismatches.push({ id: "mimetype-store-compression", expected: "STORE", actual: header ? `method-${header.method}` : null });
+    }
+  } catch (error) {
+    result.mismatches.push({ reason: "repair-verification-error", message: error.message });
+  }
+  result.ok = result.mismatches.length === 0;
+  return result;
+}
+
+function inspectZipEntryHeaders(bytes) {
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const decoder = new TextDecoder();
+  const entries = [];
+  let offset = 0;
+  while (offset + 30 <= data.length && view.getUint32(offset, true) === 0x04034b50) {
+    const flags = view.getUint16(offset + 6, true);
+    const method = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    if (dataStart > data.length) break;
+    const name = decoder.decode(data.subarray(nameStart, nameStart + nameLength));
+    entries.push({ name, method });
+    if (flags & 0x0008) break;
+    const nextOffset = dataStart + compressedSize;
+    if (nextOffset <= offset) break;
+    offset = nextOffset;
+  }
+  return entries;
+}
+
+function compareRepairPackageEntries(repairedZip, applied) {
+  const originalEntries = state.zip ? Object.keys(state.zip.files).filter((path) => !state.zip.files[path].dir).sort() : [];
+  const repairedEntries = Object.keys(repairedZip.files).filter((path) => !repairedZip.files[path].dir).sort();
+  const repairedSet = new Set(repairedEntries);
+  const originalSet = new Set(originalEntries);
+  const expectedAdded = new Set(applied.map((item) => item.path).filter(Boolean));
+  const missingOriginalEntries = originalEntries.filter((path) => !repairedSet.has(path));
+  const addedEntries = repairedEntries.filter((path) => originalEntries.length && !originalSet.has(path));
+  const unexpectedAddedEntries = addedEntries.filter((path) => !expectedAdded.has(path));
+  return {
+    originalEntryCount: originalEntries.length,
+    repairedEntryCount: repairedEntries.length,
+    preservedOriginalEntries: missingOriginalEntries.length === 0,
+    missingOriginalEntries,
+    addedEntries,
+    expectedAddedEntries: [...expectedAdded],
+    unexpectedAddedEntries,
+  };
+}
+
 function shouldMarkExportClean(report) {
   if (!report) return true;
   if (report.skipped.length) return false;
@@ -1839,6 +2022,7 @@ function createJsonExportData() {
     exportedAt: new Date().toISOString(),
     packageInfo: state.packageInfo,
     lastExportReport: state.lastExportReport,
+    lastRepairReport: state.lastRepairReport,
     changes: getSerializableChanges(),
     blocks: getSerializableBlocks(),
     paragraphs: getEditorParagraphs().map(({ index, text, kind }) => ({ index, kind, text })),
@@ -1871,6 +2055,7 @@ function createReportData() {
     packageInfo: state.packageInfo,
     packageDoctor: state.packageInfo?.validation || null,
     lastExportReport: state.lastExportReport,
+    lastRepairReport: state.lastRepairReport,
     compatibility: collectCompatibilitySnapshot(),
     changes: getSerializableChanges(),
     document: {
@@ -1889,6 +2074,14 @@ function createReportSummary() {
     healthStatus: validation?.status ?? null,
     doctorIssues: validation?.counts || null,
     repairModes: countRepairModes(validation?.repairPlan || []),
+    repairVerification: state.lastRepairReport?.verification
+      ? {
+          ok: state.lastRepairReport.verification.ok,
+          checks: state.lastRepairReport.verification.checks.length,
+          mismatches: state.lastRepairReport.verification.mismatches.length,
+          addedEntries: state.lastRepairReport.verification.package?.addedEntries || [],
+        }
+      : null,
     exportVerification: state.lastExportReport?.verification
       ? {
           ok: state.lastExportReport.verification.ok,

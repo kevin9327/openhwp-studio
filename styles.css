@@ -528,6 +528,10 @@ button {
 
 .package-tools {
   margin: 10px 0 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
 }
 
 .package-tools select {
@@ -538,6 +542,11 @@ button {
   padding: 0 9px;
   background: #fff;
   color: var(--ink);
+}
+
+.package-tools .command {
+  min-height: 34px;
+  padding: 0 10px;
 }
 
 .change-item {

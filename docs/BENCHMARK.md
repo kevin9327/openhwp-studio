@@ -20,6 +20,7 @@ OpenHWP Studio should not try to beat every HWP/HWPX project by cloning the same
 - Browser-first HWPX package doctor with health score, issue counts, media reference risk, unsupported control warnings, and repair-plan data.
 - Browser HWPX package explorer for ZIP entries, manifest targets, missing target detection, media references, and doctor issues.
 - Repair preview that classifies document issues into auto, manual, blocked, and verify actions, backed by a public broken-relationship fixture.
+- Safe automatic repair export for metadata-only issues, starting with missing HWPX `mimetype`, with verification that original package entries are preserved.
 - Source-preserving HWPX export that clones the original package and verifies paragraph/table-cell text round-trips.
 - Report JSON schema v2 with package doctor, compatibility snapshot, change diff, latest export verification, and package entry preservation.
 - Public synthetic HWPX fixtures with CI checks for ZIP entries, section text extraction, table detection, package doctor/explorer expectations, repair modes, and patch round-trip.
@@ -28,7 +29,7 @@ OpenHWP Studio should not try to beat every HWP/HWPX project by cloning the same
 ## Next Moves To Beat The Field
 
 1. Add fixture suite coverage for multi-section documents, media/BinData, broken relationships, malformed XML, headers/footers, footnotes, and merged tables.
-2. Turn auto repair-plan entries into downloadable repaired HWPX packages for safe metadata fixes.
+2. Expand safe repaired-package export beyond metadata into relationship cleanup rules with before/after verification.
 3. Expand the package explorer into a relationship graph with media thumbnails and before/after repair previews.
 4. Promote HWP binary ingest from preview-only to a guided HWP -> editable HWPX workflow through `@rhwp/core`.
 5. Add a CLI/PWA offline path so developers and institutions can run the same validation/export contracts outside the demo page.

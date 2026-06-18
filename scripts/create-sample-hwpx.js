@@ -36,6 +36,7 @@ const entries = [
   {
     name: "mimetype",
     data: "application/hwp+zip",
+    store: true,
   },
   {
     name: "Contents/content.hpf",
@@ -107,10 +108,6 @@ const brokenFixturePath = path.join(samplesDir, brokenFixtureName);
 const brokenExpectedPath = path.join(samplesDir, "openhwp-broken-rel.expected.json");
 const brokenEntries = [
   {
-    name: "mimetype",
-    data: "application/hwp+zip",
-  },
-  {
     name: "Contents/content.hpf",
     data: `<?xml version="1.0" encoding="UTF-8"?>
 <opf:package xmlns:opf="http://www.idpf.org/2007/opf" version="1.0">
@@ -149,17 +146,18 @@ fs.writeFileSync(
       relationships: ["Contents/content.hpf"],
       tableCount: 1,
       doctor: {
-        score: 85,
+        score: 73,
         status: "review",
-        counts: { danger: 0, warn: 1, info: 1 },
+        counts: { danger: 0, warn: 2, info: 1 },
         issues: [
+          { id: "missing-mimetype", severity: "warn" },
           { id: "missing-relationship-target", severity: "warn" },
           { id: "partial-table-editing", severity: "info" },
         ],
-        repairModes: { auto: 0, manual: 1, blocked: 0, verify: 1 },
+        repairModes: { auto: 1, manual: 1, blocked: 0, verify: 1 },
       },
       inspector: {
-        entryKinds: { manifest: 1, mimetype: 1, section: 1, style: 1 },
+        entryKinds: { manifest: 1, section: 1, style: 1 },
         manifestItems: 3,
         missingTargets: 1,
       },

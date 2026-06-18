@@ -2,7 +2,6 @@
   "fixture": "openhwp-broken-rel.hwpx",
   "generatedBy": "scripts/create-sample-hwpx.js",
   "entries": [
-    "mimetype",
     "Contents/content.hpf",
     "Contents/styles.xml",
     "Contents/section0.xml"
@@ -18,14 +17,18 @@
   ],
   "tableCount": 1,
   "doctor": {
-    "score": 85,
+    "score": 73,
     "status": "review",
     "counts": {
       "danger": 0,
-      "warn": 1,
+      "warn": 2,
       "info": 1
     },
     "issues": [
+      {
+        "id": "missing-mimetype",
+        "severity": "warn"
+      },
       {
         "id": "missing-relationship-target",
         "severity": "warn"
@@ -36,7 +39,7 @@
       }
     ],
     "repairModes": {
-      "auto": 0,
+      "auto": 1,
       "manual": 1,
       "blocked": 0,
       "verify": 1
@@ -45,7 +48,6 @@
   "inspector": {
     "entryKinds": {
       "manifest": 1,
-      "mimetype": 1,
       "section": 1,
       "style": 1
     },

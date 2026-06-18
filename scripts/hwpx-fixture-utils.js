@@ -22,14 +22,15 @@ function createZip(entries) {
   for (const entry of entries) {
     const name = Buffer.from(entry.name, "utf8");
     const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data, "utf8");
-    const compressed = zlib.deflateRawSync(data, { level: 6 });
+    const method = entry.store || entry.compression === "STORE" ? 0 : 8;
+    const compressed = method === 0 ? data : zlib.deflateRawSync(data, { level: 6 });
     const crc = crc32(data);
 
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
     local.writeUInt16LE(0x0800, 6);
-    local.writeUInt16LE(8, 8);
+    local.writeUInt16LE(method, 8);
     local.writeUInt16LE(DOS_TIME, 10);
     local.writeUInt16LE(DOS_DATE, 12);
     local.writeUInt32LE(crc, 14);
@@ -44,7 +45,7 @@ function createZip(entries) {
     central.writeUInt16LE(20, 4);
     central.writeUInt16LE(20, 6);
     central.writeUInt16LE(0x0800, 8);
-    central.writeUInt16LE(8, 10);
+    central.writeUInt16LE(method, 10);
     central.writeUInt16LE(DOS_TIME, 12);
     central.writeUInt16LE(DOS_DATE, 14);
     central.writeUInt32LE(crc, 16);
@@ -75,6 +76,25 @@ function createZip(entries) {
   end.writeUInt16LE(0, 20);
 
   return Buffer.concat([...localParts, centralDirectory, end]);
+}
+
+function inspectZipHeaders(buffer) {
+  const entries = [];
+  let offset = 0;
+
+  while (offset + 30 <= buffer.length && buffer.readUInt32LE(offset) === 0x04034b50) {
+    const method = buffer.readUInt16LE(offset + 8);
+    const compressedSize = buffer.readUInt32LE(offset + 18);
+    const nameLength = buffer.readUInt16LE(offset + 26);
+    const extraLength = buffer.readUInt16LE(offset + 28);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const name = buffer.subarray(nameStart, nameStart + nameLength).toString("utf8");
+    entries.push({ name, method });
+    offset = dataStart + compressedSize;
+  }
+
+  return entries;
 }
 
 function readZip(buffer) {
@@ -117,5 +137,6 @@ function decodeXml(value) {
 module.exports = {
   createZip,
   extractTextNodes,
+  inspectZipHeaders,
   readZip,
 };

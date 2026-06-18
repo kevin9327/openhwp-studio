@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { createZip, extractTextNodes, readZip } = require("./hwpx-fixture-utils");
+const { createZip, extractTextNodes, inspectZipHeaders, readZip } = require("./hwpx-fixture-utils");
 
 const root = path.resolve(__dirname, "..");
 const samplesDir = path.join(root, "samples");
@@ -60,6 +60,19 @@ function checkFixture(expected) {
     `Doctor issue list mismatch in ${expected.fixture}`,
   );
 
+  if (doctor.repairModes.auto) {
+    const repaired = applyFixtureAutoRepair(entries);
+    const repairedZip = createZip(repaired);
+    const repairedEntries = readZip(repairedZip);
+    const repairedHeaders = inspectZipHeaders(repairedZip);
+    const missingOriginal = [...entries.keys()].filter((name) => !repairedEntries.has(name));
+    assert(missingOriginal.length === 0, `Auto repair dropped original entries in ${expected.fixture}: ${missingOriginal.join(", ")}`);
+    assert(repairedEntries.has("mimetype"), `Auto repair did not add mimetype in ${expected.fixture}`);
+    assert(repairedEntries.get("mimetype").toString("utf8") === "application/hwp+zip", `Auto repair wrote unexpected mimetype in ${expected.fixture}`);
+    assert(repairedHeaders[0]?.name === "mimetype", `Auto repair did not write mimetype as the first entry in ${expected.fixture}`);
+    assert(repairedHeaders[0]?.method === 0, `Auto repair did not STORE mimetype in ${expected.fixture}`);
+  }
+
   const patchedText = "OpenHWP Studio patched paragraph";
   const patchedTableCellText = "Patched table cell";
   const patchedEntries = [...entries].map(([name, data]) => ({
@@ -79,6 +92,12 @@ function checkFixture(expected) {
   console.log(`Sections: ${sectionPaths.length}, paragraphs: ${paragraphs.length}, tables: ${tableCount}`);
   console.log(`Doctor: score ${doctor.score}, status ${doctor.status}, repair ${JSON.stringify(doctor.repairModes)}`);
   console.log(`Inspector: ${inspector.manifestItems} manifest items, ${inspector.missingTargets} missing target(s)`);
+}
+
+function applyFixtureAutoRepair(entries) {
+  const repaired = [...entries].map(([name, data]) => ({ name, data }));
+  if (!entries.has("mimetype")) repaired.unshift({ name: "mimetype", data: "application/hwp+zip", store: true });
+  return repaired;
 }
 
 function inspectFixtureInspector(entries) {

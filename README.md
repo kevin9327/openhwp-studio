@@ -39,6 +39,7 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - 패키지 인스펙터: 섹션, 스타일, 관계, 미디어, 표/각주/머리말 위험도를 한 화면에서 확인
 - 패키지 탐색기: ZIP entry, manifest target, media, doctor issue를 브라우저에서 바로 전환 확인
 - 패키지 닥터: HWPX 필수 entry, XML 파싱, 미디어 참조, 미지원 컨트롤을 점수와 repair plan으로 표시
+- 자동 복구 내보내기: 안전한 auto repair 항목은 원본 ZIP 구조를 보존한 repaired HWPX로 다운로드
 - 복구 프리뷰: auto/manual/blocked/verify repair mode를 분리하고, 깨진 manifest target 샘플로 바로 검증
 - 문서 검수 UX: 개요, 통계, 품질 규칙, 변환을 한 화면에 배치
 - 엔진 친화: `@rhwp/core` 위에 사용자 경험과 워크플로를 얹는 구조
@@ -50,7 +51,8 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - HWPX 패키지 인스펙터: 엔트리, 섹션, 스타일, 관계, 미디어, 표/각주/도형 감지
 - HWPX 패키지 탐색기: entry 종류/크기, manifest target 존재 여부, media 참조 상태, doctor issue 목록
 - HWPX 패키지 닥터: 구조 건강 점수, 위험 이슈, repair plan, Report JSON schema v2
-- 진단 샘플: `openhwp-broken-rel.hwpx`로 missing manifest target과 repair preview 흐름 확인
+- HWPX 자동 복구: missing `mimetype` 같은 안전한 메타데이터 수리를 repaired HWPX 다운로드로 검증
+- 진단 샘플: `openhwp-broken-rel.hwpx`로 missing `mimetype`, missing manifest target, repair preview 흐름 확인
 - 기존 HWPX 표를 편집 가능한 표로 표시하고 셀 문단 텍스트 라운드트립 검증
 - 적용/스킵/검증 결과를 담은 Report JSON 내보내기. Report 버튼은 가능한 경우 최신 HWPX 검증을 먼저 실행합니다.
 - 원본 대비 문단/표 셀 변경 추적과 Report JSON diff
@@ -100,7 +102,7 @@ http://localhost:4180
 npm run check
 ```
 
-`check`는 JavaScript 문법, `app.js`가 참조하는 DOM id, `index.html` 정적 자산 계약, 공개 HWPX fixtures의 ZIP 구조/문단 추출/패치 라운드트립/패키지 닥터/탐색기/repair mode 기대값을 확인합니다.
+`check`는 JavaScript 문법, `app.js`가 참조하는 DOM id, `index.html` 정적 자산 계약, 공개 HWPX fixtures의 ZIP 구조/문단 추출/패치 라운드트립/패키지 닥터/탐색기/repair mode/auto repair 기대값을 확인합니다.
 
 샘플 HWPX를 재생성하려면:
 
@@ -113,7 +115,7 @@ npm run samples:generate
 - HWPX 표/이미지/각주 구조 편집과 리포트 기반 회귀 샘플
 - HWP -> HWPX 변환 후 편집 가능한 워크플로
 - 한컴/공공 문서 호환성 샘플 테스트셋 확장
-- 문서 diff, 복구, 깨진 HWPX 자동 수리
+- 문서 diff, 관계 그래프, 더 넓은 깨진 HWPX 자동 수리
 - GitHub Pages 데모와 샘플 문서
 - 브라우저 확장/파일 연결
 - AI 문서 정리 플러그인: 민감정보 마스킹, 공문체 교정, 요약
