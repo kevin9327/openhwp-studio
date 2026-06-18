@@ -20,12 +20,14 @@ const state = {
   previewPages: 0,
   previewZoom: 100,
   isDirty: false,
+  pendingFileSelection: false,
 };
 
 const els = {
   fileInput: $("#fileInput"),
   openButton: $("#openButton"),
   emptyOpenButton: $("#emptyOpenButton"),
+  sampleOpenButton: $("#sampleOpenButton"),
   newButton: $("#newButton"),
   exportHwpxButton: $("#exportHwpxButton"),
   exportTextButton: $("#exportTextButton"),
@@ -70,10 +72,13 @@ const els = {
 boot();
 
 function boot() {
-  els.openButton.addEventListener("click", () => els.fileInput.click());
-  els.emptyOpenButton.addEventListener("click", () => els.fileInput.click());
+  els.openButton.addEventListener("click", openFilePicker);
+  els.emptyOpenButton.addEventListener("click", openFilePicker);
   els.fileInput.addEventListener("change", onFileInput);
-  els.newButton.addEventListener("click", createStarterDocument);
+  els.sampleOpenButton.addEventListener("click", loadSampleDocument);
+  els.newButton.addEventListener("click", () => {
+    if (confirmDiscardDirty()) createStarterDocument();
+  });
   els.exportHwpxButton.addEventListener("click", exportHwpx);
   els.exportTextButton.addEventListener("click", () => downloadText("txt"));
   els.printButton.addEventListener("click", () => window.print());
@@ -121,7 +126,7 @@ function boot() {
 
   window.addEventListener("drop", (event) => {
     const file = event.dataTransfer?.files?.[0];
-    if (file) {
+    if (file && confirmDiscardDirty()) {
       loadFile(file).catch((error) => {
         alert(`파일을 열 수 없습니다: ${error.message}`);
       });
@@ -166,15 +171,44 @@ function updateDirtyStatus() {
   document.title = `${state.isDirty ? "* " : ""}OpenHWP Studio`;
 }
 
+function confirmDiscardDirty() {
+  if (!state.isDirty) return true;
+  return window.confirm("저장하지 않은 변경이 있습니다. 현재 문서를 닫고 계속할까요?");
+}
+
+function openFilePicker() {
+  if (!confirmDiscardDirty()) return;
+  state.pendingFileSelection = true;
+  els.fileInput.click();
+}
+
 async function onFileInput(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (!state.pendingFileSelection && !confirmDiscardDirty()) {
+    event.target.value = "";
+    return;
+  }
   try {
     await loadFile(file);
   } catch (error) {
     alert(`파일을 열 수 없습니다: ${error.message}`);
   } finally {
+    state.pendingFileSelection = false;
     event.target.value = "";
+  }
+}
+
+async function loadSampleDocument() {
+  if (!confirmDiscardDirty()) return;
+  try {
+    const response = await fetch("./samples/openhwp-basic.hwpx");
+    if (!response.ok) throw new Error(`샘플을 불러오지 못했습니다: HTTP ${response.status}`);
+    const bytes = await response.arrayBuffer();
+    const file = new File([bytes], "openhwp-basic.hwpx", { type: "application/hwp+zip" });
+    await loadFile(file);
+  } catch (error) {
+    alert(error.message);
   }
 }
 

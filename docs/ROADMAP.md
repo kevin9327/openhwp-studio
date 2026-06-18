@@ -20,12 +20,13 @@ OpenHWP Studio aims to become the default open-source HWPX workbench for Korean 
 - Document outline, stats, search/replace, and early Korean quality checks.
 - HWPX package inspector for entries, sections, styles, relationships, media, and risky controls.
 - Source-preserving HWPX export report with applied, skipped, and verification results.
+- Public synthetic HWPX fixture with CI checks for extraction and patch round-trip.
 - Compatibility matrix, roadmap, launch note, issue templates, PR template, and CI workflow.
 
 ### 0.2 Trust the HWPX Core
 
-- Add public sample HWPX documents with expected extraction/export results.
-- Add export regression checks for paragraph text edits.
+- Expand public sample HWPX documents with expected extraction/export results.
+- Add browser-level export regression checks for paragraph text edits.
 - Expand HWPX package inspector into a relationship graph with media preview and manifest detail.
 - Replace CDN runtime dependencies with pinned local assets.
 - Document supported browser versions with manual test results.

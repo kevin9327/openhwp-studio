@@ -1,0 +1,28 @@
+{
+  "fixture": "openhwp-basic.hwpx",
+  "generatedBy": "scripts/create-sample-hwpx.js",
+  "entries": [
+    "mimetype",
+    "Contents/content.hpf",
+    "Contents/styles.xml",
+    "Contents/section0.xml"
+  ],
+  "sections": [
+    "Contents/section0.xml"
+  ],
+  "styles": [
+    "Contents/styles.xml"
+  ],
+  "relationships": [
+    "Contents/content.hpf"
+  ],
+  "tableCount": 1,
+  "paragraphs": [
+    "OpenHWP Studio 샘플 문서",
+    "작성일: 2026. 6. 19.",
+    "1. HWPX 열기와 편집",
+    "브라우저에서 로컬 HWPX 문서를 열고 문단을 수정합니다.",
+    "표 항목",
+    "검증 값"
+  ]
+}

@@ -98,6 +98,14 @@ button {
   justify-content: flex-end;
 }
 
+.drop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .command,
 .icon-command,
 .mini-button {

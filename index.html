@@ -33,6 +33,10 @@
             <i data-lucide="folder-open"></i>
             <span>열기</span>
           </button>
+          <button id="sampleOpenButton" class="command" type="button">
+            <i data-lucide="sparkles"></i>
+            <span>샘플</span>
+          </button>
           <button id="newButton" class="command" type="button">
             <i data-lucide="file-plus-2"></i>
             <span>새 문서</span>
@@ -133,10 +137,12 @@
             </div>
             <h1>HWPX 문서 작업대</h1>
             <p>로컬 파일만 사용합니다. HWPX는 편집/저장, HWP는 미리보기 중심으로 처리합니다.</p>
-            <button id="emptyOpenButton" class="command primary" type="button">
-              <i data-lucide="folder-open"></i>
-              <span>파일 선택</span>
-            </button>
+            <div class="drop-actions">
+              <button id="emptyOpenButton" class="command primary" type="button">
+                <i data-lucide="folder-open"></i>
+                <span>파일 선택</span>
+              </button>
+            </div>
           </div>
 
           <article id="documentSurface" class="document-surface" aria-label="편집 문서"></article>

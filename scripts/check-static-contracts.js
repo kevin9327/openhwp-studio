@@ -26,7 +26,10 @@ if (missingCallbacks.length) {
   process.exitCode = 1;
 }
 
-const localAssets = [...html.matchAll(/(?:href|src)="\.\/([^"]+)"/g)].map((match) => match[1]);
+const localAssets = [
+  ...[...html.matchAll(/(?:href|src)="\.\/([^"]+)"/g)].map((match) => match[1]),
+  ...[...app.matchAll(/fetch\("\.\/([^"]+)"\)/g)].map((match) => match[1]),
+];
 const missingAssets = localAssets.filter((asset) => !fs.existsSync(path.join(root, asset)));
 if (missingAssets.length) {
   console.error(`Missing local assets referenced by index.html: ${missingAssets.join(", ")}`);
