@@ -52,6 +52,8 @@ const els = {
   changeList: $("#changeList"),
   compatScore: $("#compatScore"),
   compatList: $("#compatList"),
+  healthScore: $("#healthScore"),
+  healthList: $("#healthList"),
   packageBadge: $("#packageBadge"),
   packageSummary: $("#packageSummary"),
   previewPane: $("#previewPane"),
@@ -189,6 +191,7 @@ function exposePublicApi() {
       sourceFormat: state.sourceFormat,
       isDirty: state.isDirty,
       packageInfo: state.packageInfo,
+      packageDoctor: state.packageInfo?.validation || null,
       lastExportReport: state.lastExportReport,
     }),
   });
@@ -304,10 +307,12 @@ async function loadHwpPreviewOnly(bytes) {
     entryCount: 0,
     sections: 0,
     media: [],
+    mediaDetails: [],
     styles: [],
     relationships: [],
     tables: 0,
     controls: { images: 0, footnotes: 0, headers: 0, footers: 0, shapes: 0 },
+    validation: null,
     warnings: ["HWP binary editing is preview-only in the browser alpha."],
   };
   state.blocks = [
@@ -336,13 +341,22 @@ async function inspectHwpxPackage(zip, sectionPaths) {
   const media = entries.filter((path) => /(^BinData\/|^Contents\/media\/|\.(bmp|gif|jpe?g|png|svg|webp|wmf|emf)$)/i.test(path));
   const styles = entries.filter((path) => /(styles?|font|settings|theme|version)\.xml$/i.test(path));
   const relationships = entries.filter((path) => /(\.rels$|manifest\.xml$|content\.hpf$)/i.test(path));
+  const manifestPaths = entries.filter((path) => /(content\.hpf|manifest\.xml|\.rels)$/i.test(path));
+  const manifestTexts = await readPackageTexts(zip, manifestPaths);
   const controls = { images: 0, footnotes: 0, headers: 0, footers: 0, shapes: 0 };
   let tables = 0;
+  let paragraphCount = 0;
+  const parseIssues = [];
+  const sectionTexts = [];
 
   for (const path of sectionPaths) {
     const xmlText = await zip.file(path).async("string");
-    const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+    sectionTexts.push({ path, text: xmlText });
+    const xml = parseXml(xmlText);
+    const parserError = getXmlParseError(xml);
+    if (parserError) parseIssues.push({ path, message: parserError });
     tables += countLocalNames(xml, ["tbl"]);
+    paragraphCount += countLocalNames(xml, ["p"]);
     controls.images += countLocalNames(xml, ["pic", "img", "image"]);
     controls.footnotes += countLocalNames(xml, ["footNote", "endNote", "footnote", "endnote"]);
     controls.headers += countLocalNames(xml, ["header"]);
@@ -350,24 +364,160 @@ async function inspectHwpxPackage(zip, sectionPaths) {
     controls.shapes += countLocalNames(xml, ["shapeObject", "line", "rect", "ellipse", "arc"]);
   }
 
-  const warnings = [];
-  if (!relationships.length) warnings.push("Package relationship metadata was not found.");
-  if (media.length) warnings.push("Images/media are preserved in source export but not editable yet.");
-  if (tables) warnings.push("Table text is readable, but structural table editing is partial.");
-  if (controls.footnotes) warnings.push("Footnotes/endnotes are detected but not editable yet.");
-  if (controls.headers || controls.footers) warnings.push("Headers/footers are detected but not editable yet.");
-  if (controls.shapes) warnings.push("Drawing objects are detected but not editable yet.");
+  const referenceCorpus = [...sectionTexts.map((item) => item.text), ...manifestTexts.map((item) => item.text)].join("\n");
+  const mediaDetails = media.map((path) => createMediaDetail(zip, path, referenceCorpus));
+  const validation = createHwpxValidation({
+    entries,
+    sectionPaths,
+    styles,
+    relationships,
+    manifestPaths,
+    mediaDetails,
+    controls,
+    tables,
+    paragraphCount,
+    parseIssues,
+  });
+  const warnings = validation.issues.filter((issue) => issue.severity !== "info").map((issue) => issue.title);
 
   return {
     format: "HWPX",
     entryCount: entries.length,
     sections: sectionPaths.length,
     media,
+    mediaDetails,
     styles,
     relationships,
     tables,
     controls,
+    validation,
     warnings,
+  };
+}
+
+function parseXml(xmlText) {
+  return new DOMParser().parseFromString(xmlText, "application/xml");
+}
+
+function getXmlParseError(xml) {
+  const parserError = xml.getElementsByTagName("parsererror")[0];
+  return parserError?.textContent?.replace(/\s+/g, " ").trim().slice(0, 220) || "";
+}
+
+async function readPackageTexts(zip, paths) {
+  const texts = [];
+  for (const path of paths.slice(0, 12)) {
+    const file = zip.file(path);
+    if (!file) continue;
+    try {
+      texts.push({ path, text: await file.async("string") });
+    } catch {
+      texts.push({ path, text: "" });
+    }
+  }
+  return texts;
+}
+
+function createMediaDetail(zip, path, referenceCorpus) {
+  const lowerCorpus = referenceCorpus.toLowerCase();
+  const fileName = path.split("/").pop() || path;
+  const lowerPath = path.toLowerCase();
+  const lowerName = fileName.toLowerCase();
+  const extension = lowerName.includes(".") ? lowerName.split(".").pop() : "bin";
+  return {
+    path,
+    fileName,
+    extension,
+    size: estimateZipEntrySize(zip, path),
+    referenced: lowerCorpus.includes(lowerPath) || lowerCorpus.includes(lowerName),
+  };
+}
+
+function estimateZipEntrySize(zip, path) {
+  const rawSize = zip.file(path)?._data?.uncompressedSize ?? zip.file(path)?._data?.compressedSize;
+  return Number.isFinite(rawSize) ? rawSize : null;
+}
+
+function createHwpxValidation(input) {
+  const {
+    entries,
+    sectionPaths,
+    styles,
+    relationships,
+    manifestPaths,
+    mediaDetails,
+    controls,
+    tables,
+    paragraphCount,
+    parseIssues,
+  } = input;
+  const issues = [];
+  const hasEntry = (pattern) => entries.some((path) => pattern.test(path));
+  const addIssue = (severity, id, title, detail, action) => {
+    issues.push({ severity, id, title, detail, action });
+  };
+
+  if (!hasEntry(/^mimetype$/i)) {
+    addIssue("warn", "missing-mimetype", "mimetype entry is missing", "Some strict HWPX readers expect a package mimetype entry.", "Add mimetype when regenerating the package.");
+  }
+  if (!manifestPaths.length) {
+    addIssue("warn", "missing-manifest", "Package manifest is missing", "No content.hpf, manifest.xml, or .rels metadata was found.", "Open and resave in a full HWPX editor or regenerate the package manifest.");
+  }
+  if (!sectionPaths.length) {
+    addIssue("danger", "missing-sections", "No HWPX sections found", "The package has no Contents/section*.xml file.", "Recover or regenerate the section XML before editing.");
+  }
+  if (!styles.length) {
+    addIssue("warn", "missing-styles", "Style metadata is missing", "styles.xml or equivalent style metadata was not found.", "Keep a source backup and verify layout after export.");
+  }
+  if (!relationships.length) {
+    addIssue("warn", "missing-relationships", "Relationship metadata is missing", "The package has no relationship metadata entry.", "Regenerate relationship metadata before strict distribution.");
+  }
+  if (parseIssues.length) {
+    addIssue("danger", "xml-parse-error", "Section XML parse error", `${parseIssues.length} section file(s) failed XML parsing.`, "Repair XML before source-preserving export.");
+  }
+  if (!paragraphCount) {
+    addIssue("warn", "empty-text", "No editable paragraph text found", "The document may be image-only, control-heavy, or damaged.", "Use accurate preview and package report before editing.");
+  }
+
+  const orphanMedia = mediaDetails.filter((item) => !item.referenced);
+  if (orphanMedia.length) {
+    addIssue("warn", "orphan-media", "Unreferenced media detected", `${orphanMedia.length} media file(s) were not referenced by visible XML or manifest text.`, "Check BinData/manifest references before publishing.");
+  }
+  if (mediaDetails.length) {
+    addIssue("info", "media-preserved", "Media is preserved, not edited", `${mediaDetails.length} media file(s) will stay in source-preserving export.`, "Use the package report to verify each asset path.");
+  }
+  if (tables) {
+    addIssue("info", "partial-table-editing", "Table structure editing is partial", `${tables} table(s) were detected. Cell text is editable and verified.`, "For merged cells or geometry changes, verify in Hancom Office after export.");
+  }
+  if (controls.images || controls.footnotes || controls.headers || controls.footers || controls.shapes) {
+    addIssue(
+      "warn",
+      "unsupported-controls",
+      "Advanced controls need review",
+      `images ${controls.images}, footnotes ${controls.footnotes}, headers ${controls.headers}, footers ${controls.footers}, shapes ${controls.shapes}`,
+      "Source export preserves these structures, but app-side editing is limited.",
+    );
+  }
+  if (entries.some((path) => path.includes("..") || path.includes("\\"))) {
+    addIssue("danger", "unsafe-entry-path", "Unsafe ZIP entry path", "One or more package entries contain traversal-like path segments.", "Do not distribute this package until paths are normalized.");
+  }
+  if (entries.length > 300) {
+    addIssue("info", "large-package", "Large package", `${entries.length} files were found in the package.`, "Use report export for audit trails on large documents.");
+  }
+
+  const penalty = issues.reduce((total, issue) => total + ({ danger: 30, warn: 12, info: 3 }[issue.severity] || 0), 0);
+  const score = Math.max(0, 100 - penalty);
+  return {
+    score,
+    status: score >= 90 ? "ready" : score >= 70 ? "review" : "risky",
+    issueCount: issues.length,
+    counts: {
+      danger: issues.filter((issue) => issue.severity === "danger").length,
+      warn: issues.filter((issue) => issue.severity === "warn").length,
+      info: issues.filter((issue) => issue.severity === "info").length,
+    },
+    issues,
+    repairPlan: issues.map(({ severity, id, title, action }) => ({ severity, id, title, action })),
   };
 }
 
@@ -614,6 +764,7 @@ function updateAll() {
   updateQuality();
   updateChanges();
   updateCompatibility();
+  updateHealth();
   updatePackageSummary();
   updateSearch();
 }
@@ -797,6 +948,13 @@ function updateCompatibility() {
     items.push(["ok", "새 HWPX 문서는 rhwp 생성 경로와 텍스트/HTML/Markdown/JSON export를 사용할 수 있습니다."]);
   }
 
+  if (info?.validation?.counts?.danger) {
+    items.push(["danger", `패키지 닥터가 치명 이슈 ${info.validation.counts.danger}개를 찾았습니다. Report의 repairPlan을 먼저 확인하세요.`]);
+    penalty += 25;
+  } else if (info?.validation?.counts?.warn) {
+    items.push(["warn", `패키지 닥터가 주의 이슈 ${info.validation.counts.warn}개를 찾았습니다. 원본 보존 export 전 확인이 필요합니다.`]);
+    penalty += 8;
+  }
   if (info?.media?.length) {
     items.push(["warn", `미디어 ${info.media.length}개는 보존 대상이지만 앱 안 편집은 아직 지원하지 않습니다.`]);
     penalty += 12;
@@ -832,6 +990,30 @@ function updateCompatibility() {
   renderStatusList(els.compatList, items);
 }
 
+function updateHealth() {
+  const validation = state.packageInfo?.validation;
+  if (!validation) {
+    els.healthScore.textContent = state.sourceFormat === "HWP" ? "HWP" : "-";
+    renderStatusList(els.healthList, [
+      state.sourceFormat === "HWP"
+        ? ["warn", "HWP binary files use preview/conversion checks. Full package doctor runs on HWPX."]
+        : ["ok", "Open an HWPX file to run package validation."],
+    ]);
+    return;
+  }
+
+  els.healthScore.textContent = String(validation.score);
+  const items = validation.issues.slice(0, 8).map((issue) => [issue.severity, `${issue.title}: ${issue.action}`]);
+  if (!items.length) items.push(["ok", "Package structure looks healthy for source-preserving HWPX editing."]);
+  renderStatusList(els.healthList, items);
+  if (validation.issues.length > items.length) {
+    const rest = document.createElement("div");
+    rest.className = "small-note";
+    rest.textContent = `+${validation.issues.length - items.length} more doctor notes`;
+    els.healthList.appendChild(rest);
+  }
+}
+
 function updatePackageSummary() {
   const info = state.packageInfo;
   els.packageSummary.innerHTML = "";
@@ -844,9 +1026,17 @@ function updatePackageSummary() {
 
   els.packageBadge.textContent = info.format;
   appendPackageItem("엔트리", `${info.entryCount || 0} files, ${info.sections || 0} section(s)`, "ok");
+  if (info.validation) {
+    appendPackageItem(
+      "검증",
+      `score ${info.validation.score}, danger ${info.validation.counts.danger}, warn ${info.validation.counts.warn}, info ${info.validation.counts.info}`,
+      info.validation.counts.danger ? "danger" : info.validation.counts.warn ? "warn" : "ok",
+    );
+  }
   if (info.styles?.length) appendPackageItem("스타일", summarizePaths(info.styles), "ok");
   if (info.relationships?.length) appendPackageItem("관계", summarizePaths(info.relationships), "ok");
-  if (info.media?.length) appendPackageItem("미디어", summarizePaths(info.media), "warn");
+  if (info.mediaDetails?.length) appendPackageItem("미디어", summarizeMediaDetails(info.mediaDetails), "warn");
+  else if (info.media?.length) appendPackageItem("미디어", summarizePaths(info.media), "warn");
   if (info.tables || info.controls?.images || info.controls?.footnotes || info.controls?.shapes) {
     appendPackageItem(
       "구조",
@@ -881,6 +1071,22 @@ function summarizePaths(paths, limit = 3) {
   const shown = paths.slice(0, limit).join(", ");
   const extra = paths.length > limit ? ` 외 ${paths.length - limit}개` : "";
   return `${shown}${extra}`;
+}
+
+function summarizeMediaDetails(mediaDetails, limit = 3) {
+  const shown = mediaDetails
+    .slice(0, limit)
+    .map((item) => `${item.fileName}${item.size ? ` ${formatBytes(item.size)}` : ""}${item.referenced ? "" : " unreferenced"}`)
+    .join(", ");
+  const extra = mediaDetails.length > limit ? ` 외 ${mediaDetails.length - limit}개` : "";
+  return `${shown}${extra}`;
+}
+
+function formatBytes(value) {
+  if (!Number.isFinite(value)) return "";
+  if (value < 1024) return `${value}B`;
+  if (value < 1024 * 1024) return `${Math.round(value / 102.4) / 10}KB`;
+  return `${Math.round(value / 104857.6) / 10}MB`;
 }
 
 function updateSearch() {
@@ -1082,6 +1288,7 @@ function createExportReport(mode) {
     applied: [],
     skipped: [],
     warnings: [...(state.packageInfo?.warnings || [])],
+    packageValidation: state.packageInfo?.validation || null,
     verification: null,
   };
 }
@@ -1101,10 +1308,18 @@ async function createGeneratedExportReport(bytes) {
 }
 
 async function verifySourceHwpxExport(bytes, applied) {
-  const result = { ok: true, checked: 0, mismatches: [] };
+  const result = { ok: true, checked: 0, mismatches: [], package: null };
   try {
     await waitForJsZip();
     const zip = await JSZip.loadAsync(bytes);
+    result.package = comparePackageEntries(zip);
+    if (!result.package.preserved) {
+      result.mismatches.push({
+        reason: "package-entry-mismatch",
+        missingEntries: result.package.missingEntries,
+        addedEntries: result.package.addedEntries,
+      });
+    }
     const xmlCache = new Map();
     for (const item of applied) {
       if (!xmlCache.has(item.path)) {
@@ -1128,6 +1343,24 @@ async function verifySourceHwpxExport(bytes, applied) {
   }
   result.ok = result.mismatches.length === 0;
   return result;
+}
+
+function comparePackageEntries(exportedZip) {
+  const originalEntries = state.zip
+    ? Object.keys(state.zip.files).filter((path) => !state.zip.files[path].dir).sort()
+    : [];
+  const exportedEntries = Object.keys(exportedZip.files).filter((path) => !exportedZip.files[path].dir).sort();
+  const exportedSet = new Set(exportedEntries);
+  const originalSet = new Set(originalEntries);
+  const missingEntries = originalEntries.filter((path) => !exportedSet.has(path));
+  const addedEntries = exportedEntries.filter((path) => originalEntries.length && !originalSet.has(path));
+  return {
+    originalEntryCount: originalEntries.length,
+    exportedEntryCount: exportedEntries.length,
+    preserved: missingEntries.length === 0 && addedEntries.length === 0,
+    missingEntries,
+    addedEntries,
+  };
 }
 
 async function verifyGeneratedHwpxExport(bytes, expectedItems) {
@@ -1326,17 +1559,31 @@ function createJsonExportData() {
   };
 }
 
-function downloadReport() {
-  downloadBlob(new Blob([JSON.stringify(createReportData(), null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "report.json"));
+async function downloadReport() {
+  try {
+    clearSearchMarks();
+    if (state.zip && state.xmlByPath.size) {
+      els.engineStatus.textContent = "Verifying report";
+      await generateEditedSourceHwpxBytes({ verify: true, updateReport: true });
+      updateAll();
+    }
+    downloadBlob(new Blob([JSON.stringify(createReportData(), null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "report.json"));
+    els.engineStatus.textContent = "Report ready";
+  } catch (error) {
+    alert(`Report export failed: ${error.message}`);
+  }
 }
 
 function createReportData() {
   return {
     product: "OpenHWP Studio",
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     fileName: state.fileName,
     sourceFormat: state.sourceFormat,
+    summary: createReportSummary(),
     packageInfo: state.packageInfo,
+    packageDoctor: state.packageInfo?.validation || null,
     lastExportReport: state.lastExportReport,
     compatibility: collectCompatibilitySnapshot(),
     changes: getSerializableChanges(),
@@ -1345,6 +1592,28 @@ function createReportData() {
       paragraphs: getEditorParagraphs().map(({ index, text, kind, path, paraIndex }) => ({ index, kind, path, paraIndex, text })),
       insertedHtmlTables: getInsertedTables().map((table, index) => ({ index, text: table.textContent.trim() })),
     },
+  };
+}
+
+function createReportSummary() {
+  const changes = collectChanges();
+  const validation = state.packageInfo?.validation;
+  return {
+    healthScore: validation?.score ?? null,
+    healthStatus: validation?.status ?? null,
+    doctorIssues: validation?.counts || null,
+    exportVerification: state.lastExportReport?.verification
+      ? {
+          ok: state.lastExportReport.verification.ok,
+          checked: state.lastExportReport.verification.checked,
+          mismatches: state.lastExportReport.verification.mismatches.length,
+          packagePreserved: state.lastExportReport.verification.package?.preserved ?? null,
+        }
+      : null,
+    appliedEdits: state.lastExportReport?.applied?.length || 0,
+    skippedItems: state.lastExportReport?.skipped?.length || 0,
+    changes: changes.length,
+    insertedHtmlTables: getInsertedTables().length,
   };
 }
 

@@ -21,12 +21,13 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | --- | --- | --- |
 | HWPX package open | Supported | Opens `.hwpx` ZIP packages and reads `Contents/section*.xml`. |
 | HWPX package inspection | Supported | Reports package entry counts, sections, styles, relationships, media, tables, and known risky controls. |
-| Public HWPX fixtures | Supported | Includes a synthetic HWPX fixture checked in CI for ZIP entries, section text extraction, table detection, and patch round-trip. |
+| HWPX package doctor | Supported | Scores package health and reports missing required entries, XML parse issues, media reference risk, unsupported controls, and repair-plan hints. |
+| Public HWPX fixtures | Supported | Includes a synthetic HWPX fixture checked in CI for ZIP entries, section text extraction, table detection, package doctor expectations, and patch round-trip. |
 | HWP binary open | Preview only | Uses `@rhwp/core` for rendering/inspection paths. Editing is focused on HWPX. |
 | Paragraph text extraction | Supported | Extracts paragraph text nodes from HWPX section XML. |
 | Paragraph text editing | Supported | Edits extracted paragraph text in the browser editor. |
 | HWPX source-preserving export | Partial | Writes edited paragraph text back into a cloned original package when section XML is available. |
-| HWPX export verification | Supported | Reloads exported HWPX bytes and compares patched paragraph text, then stores applied/skipped/mismatch details in the report JSON. |
+| HWPX export verification | Supported | Reloads exported HWPX bytes, compares patched paragraph text, checks package entry preservation, then stores applied/skipped/mismatch details in the report JSON. |
 | New HWPX export | Experimental | Creates a simple document through `@rhwp/core` when possible; shows an explicit error instead of silently changing formats. |
 | HWP export | Experimental | Uses `@rhwp/core` conversion paths and needs more real-world validation. |
 | Accurate preview | Partial | Renders page previews through `@rhwp/core` with page navigation and zoom; coverage depends on the document feature set. |
@@ -52,7 +53,7 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | HTML | Supported | HTML export/copy path for editor blocks, including `<table>` output for HWPX source tables. |
 | Markdown | Supported | Markdown copy path based on paragraph kinds, including pipe-table output for tables. |
 | JSON | Supported | Exports block structure plus paragraph index, kind, and text for automation/debugging. |
-| Report JSON | Supported | Exports package inspection, compatibility messages, applied edits, skipped items, and export verification results. |
+| Report JSON | Supported | Exports schema v2 package inspection, package doctor, compatibility messages, applied edits, skipped items, change diffs, and latest export verification results. |
 | PDF | Partial | Browser print/PDF is available; this is not a layout-certified HWPX PDF renderer. |
 
 ## Browser Targets

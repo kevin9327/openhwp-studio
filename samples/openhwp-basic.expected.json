@@ -17,6 +17,21 @@
     "Contents/content.hpf"
   ],
   "tableCount": 1,
+  "doctor": {
+    "score": 97,
+    "status": "ready",
+    "counts": {
+      "danger": 0,
+      "warn": 0,
+      "info": 1
+    },
+    "issues": [
+      {
+        "id": "partial-table-editing",
+        "severity": "info"
+      }
+    ]
+  },
   "paragraphs": [
     "OpenHWP Studio 샘플 문서",
     "작성일: 2026. 6. 19.",

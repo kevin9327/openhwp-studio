@@ -485,6 +485,11 @@ button {
   background: var(--amber);
 }
 
+.quality-item.info i,
+.package-item.info i {
+  background: var(--blue);
+}
+
 .quality-item.danger i,
 .package-item.danger i {
   background: var(--rose);

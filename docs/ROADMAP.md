@@ -20,7 +20,8 @@ OpenHWP Studio aims to become the default open-source HWPX workbench for Korean 
 - Document outline, stats, search/replace, and early Korean quality checks.
 - HWPX package inspector for entries, sections, styles, relationships, media, and risky controls.
 - Source-preserving HWPX export report with applied, skipped, and verification results.
-- Public synthetic HWPX fixture with CI checks for extraction and patch round-trip.
+- HWPX package doctor with health score, issue counts, media reference risk, unsupported control warnings, and repair-plan data.
+- Public synthetic HWPX fixture with CI checks for extraction, package doctor expectations, and patch round-trip.
 - Existing HWPX table rendering with cell paragraph text round-trip checks.
 - Shared TXT/Markdown/HTML/JSON export formatter with table-aware CI contracts.
 - Paragraph and source-table cell change tracking included in JSON/Report exports.
@@ -33,7 +34,7 @@ OpenHWP Studio aims to become the default open-source HWPX workbench for Korean 
 - Expand HWPX package inspector into a relationship graph with media preview and manifest detail.
 - Replace CDN runtime dependencies with pinned local assets.
 - Document supported browser versions with manual test results.
-- Add repair rules for missing sections, broken XML, empty paragraphs, and invalid relationships.
+- Turn repair-plan data into one-click repair previews for missing metadata and broken relationship cases.
 
 ### 0.3 Diff and Repair Workspace
 

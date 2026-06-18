@@ -80,6 +80,12 @@ fs.writeFileSync(
       styles: ["Contents/styles.xml"],
       relationships: ["Contents/content.hpf"],
       tableCount: 1,
+      doctor: {
+        score: 97,
+        status: "ready",
+        counts: { danger: 0, warn: 0, info: 1 },
+        issues: [{ id: "partial-table-editing", severity: "info" }],
+      },
       paragraphs,
     },
     null,
