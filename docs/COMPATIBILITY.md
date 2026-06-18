@@ -47,10 +47,10 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | --- | --- | --- |
 | HWPX | Partial | Best path for edited HWPX files with recognized `Contents/section*.xml`. |
 | HWP | Experimental | Conversion depends on `@rhwp/core`. |
-| TXT | Supported | Plain text export from editor paragraphs. |
-| HTML | Supported | Simple HTML export/copy path for editor paragraphs. |
-| Markdown | Supported | Simple Markdown copy path based on paragraph kinds. |
-| JSON | Supported | Exports paragraph index, kind, and text for automation/debugging. |
+| TXT | Supported | Plain text export from editor blocks; tables are emitted as tab-separated rows. |
+| HTML | Supported | HTML export/copy path for editor blocks, including `<table>` output for HWPX source tables. |
+| Markdown | Supported | Markdown copy path based on paragraph kinds, including pipe-table output for tables. |
+| JSON | Supported | Exports block structure plus paragraph index, kind, and text for automation/debugging. |
 | Report JSON | Supported | Exports package inspection, compatibility messages, applied edits, skipped items, and export verification results. |
 | PDF | Partial | Browser print/PDF is available; this is not a layout-certified HWPX PDF renderer. |
 

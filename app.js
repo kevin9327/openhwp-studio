@@ -148,6 +148,7 @@ function boot() {
 
   if (window.lucide) window.lucide.createIcons();
   createStarterDocument();
+  exposePublicApi();
 }
 
 function createId() {
@@ -169,6 +170,23 @@ function markClean() {
 function updateDirtyStatus() {
   els.fileNameLabel.textContent = `${state.fileName}${state.isDirty ? " (unsaved)" : ""}`;
   document.title = `${state.isDirty ? "* " : ""}OpenHWP Studio`;
+}
+
+function exposePublicApi() {
+  globalThis.OpenHWPStudio = Object.freeze({
+    exportHtml: () => toHtml(),
+    exportJson: () => createJsonExportData(),
+    exportMarkdown: () => toMarkdown(),
+    exportText: () => toPlainText(),
+    getBlocks: () => getSerializableBlocks(),
+    getState: () => ({
+      fileName: state.fileName,
+      sourceFormat: state.sourceFormat,
+      isDirty: state.isDirty,
+      packageInfo: state.packageInfo,
+      lastExportReport: state.lastExportReport,
+    }),
+  });
 }
 
 function confirmDiscardDirty() {
@@ -511,15 +529,53 @@ function createStarterDocument() {
 }
 
 function getEditorParagraphs() {
-  return $$(".paragraph").map((node, index) => ({
+  return getEditorBlocks().flatMap((block) => {
+    if (block.type === "paragraph") return [block.paragraph];
+    return block.rows.flatMap((row) => row.cells.flatMap((cell) => cell.paragraphs));
+  }).map((paragraph, index) => ({ ...paragraph, index }));
+}
+
+function getEditorBlocks() {
+  const page = $(".paper-page");
+  if (!page) return [];
+  const blocks = [];
+
+  for (const node of Array.from(page.children)) {
+    if (node.matches?.("table.inline-table")) {
+      blocks.push(readTableBlockFromDom(node));
+    } else if (node.matches?.(".paragraph")) {
+      blocks.push({ type: "paragraph", paragraph: readParagraphFromDom(node) });
+    }
+  }
+
+  return blocks;
+}
+
+function readTableBlockFromDom(table) {
+  return {
+    type: "table",
+    id: table.dataset.id || "",
+    source: table.classList.contains("source-table") ? "source" : "inserted",
+    path: table.dataset.path || null,
+    rows: Array.from(table.rows).map((row) => ({
+      cells: Array.from(row.cells).map((cell) => ({
+        id: cell.dataset.id || "",
+        paragraphs: Array.from(cell.querySelectorAll(".paragraph")).map(readParagraphFromDom),
+        text: cell.innerText.replace(/\u00a0/g, " ").trim(),
+      })),
+    })),
+  };
+}
+
+function readParagraphFromDom(node) {
+  return {
     node,
-    index,
     id: node.dataset.id,
     path: node.dataset.path || null,
     paraIndex: Number(node.dataset.paraIndex),
     text: node.innerText.replace(/\u00a0/g, " "),
     kind: Array.from(node.classList).find((name) => ["title", "notice", "report"].includes(name)) || "normal",
-  }));
+  };
 }
 
 function updateAll() {
@@ -1134,25 +1190,15 @@ async function waitForJsZip() {
 }
 
 function toPlainText() {
-  return getEditorParagraphs().map((p) => p.text).join("\n");
+  return OpenHWPExporters.blocksToPlainText(getEditorBlocks());
 }
 
 function toMarkdown() {
-  return getEditorParagraphs()
-    .map((p) => {
-      const text = p.text.trimEnd();
-      if (p.kind === "title") return `# ${text}`;
-      if (p.kind === "report") return `## ${text}`;
-      return text;
-    })
-    .join("\n\n");
+  return OpenHWPExporters.blocksToMarkdown(getEditorBlocks());
 }
 
 function toHtml() {
-  const body = getEditorParagraphs()
-    .map((p) => `<p class="${p.kind}">${escapeHtml(p.text)}</p>`)
-    .join("\n");
-  return `<!doctype html><html lang="ko"><meta charset="utf-8"><title>${escapeHtml(state.fileName)}</title><body>${body}</body></html>`;
+  return OpenHWPExporters.blocksToHtmlDocument(getEditorBlocks(), state.fileName);
 }
 
 function downloadText(kind) {
@@ -1162,19 +1208,27 @@ function downloadText(kind) {
 }
 
 function downloadJson() {
-  const data = {
+  downloadBlob(new Blob([JSON.stringify(createJsonExportData(), null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "json"));
+}
+
+function createJsonExportData() {
+  return {
     fileName: state.fileName,
     sourceFormat: state.sourceFormat,
     exportedAt: new Date().toISOString(),
     packageInfo: state.packageInfo,
     lastExportReport: state.lastExportReport,
+    blocks: getSerializableBlocks(),
     paragraphs: getEditorParagraphs().map(({ index, text, kind }) => ({ index, kind, text })),
   };
-  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "json"));
 }
 
 function downloadReport() {
-  const data = {
+  downloadBlob(new Blob([JSON.stringify(createReportData(), null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "report.json"));
+}
+
+function createReportData() {
+  return {
     product: "OpenHWP Studio",
     generatedAt: new Date().toISOString(),
     fileName: state.fileName,
@@ -1183,11 +1237,32 @@ function downloadReport() {
     lastExportReport: state.lastExportReport,
     compatibility: collectCompatibilitySnapshot(),
     document: {
+      blocks: getSerializableBlocks(),
       paragraphs: getEditorParagraphs().map(({ index, text, kind, path, paraIndex }) => ({ index, kind, path, paraIndex, text })),
       insertedHtmlTables: getInsertedTables().map((table, index) => ({ index, text: table.textContent.trim() })),
     },
   };
-  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "report.json"));
+}
+
+function getSerializableBlocks() {
+  return getEditorBlocks().map((block, index) => {
+    if (block.type === "paragraph") {
+      const { node, ...paragraph } = block.paragraph;
+      return { type: "paragraph", index, paragraph };
+    }
+    return {
+      type: "table",
+      index,
+      source: block.source,
+      path: block.path,
+      rows: block.rows.map((row) => ({
+        cells: row.cells.map((cell) => ({
+          text: cell.text,
+          paragraphs: cell.paragraphs.map(({ node, ...paragraph }) => paragraph),
+        })),
+      })),
+    };
+  });
 }
 
 function collectCompatibilitySnapshot() {
@@ -1198,7 +1273,34 @@ function collectCompatibilitySnapshot() {
 }
 
 async function copyText(text) {
-  await navigator.clipboard.writeText(text);
+  if (copyTextWithSelection(text)) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    els.engineStatus.textContent = "Copied";
+  } catch {
+    els.engineStatus.textContent = "Copy unavailable";
+  }
+}
+
+function copyTextWithSelection(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    const ok = document.execCommand("copy");
+    if (ok) els.engineStatus.textContent = "Copied";
+    return ok;
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
 }
 
 function downloadBlob(blob, fileName) {

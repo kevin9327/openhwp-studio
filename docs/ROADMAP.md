@@ -22,6 +22,7 @@ OpenHWP Studio aims to become the default open-source HWPX workbench for Korean 
 - Source-preserving HWPX export report with applied, skipped, and verification results.
 - Public synthetic HWPX fixture with CI checks for extraction and patch round-trip.
 - Existing HWPX table rendering with cell paragraph text round-trip checks.
+- Shared TXT/Markdown/HTML/JSON export formatter with table-aware CI contracts.
 - Compatibility matrix, roadmap, launch note, issue templates, PR template, and CI workflow.
 
 ### 0.2 Trust the HWPX Core
