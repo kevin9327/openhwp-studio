@@ -351,18 +351,75 @@ function countLocalNames(xml, names) {
 
 function extractBlocks(path, xml) {
   const paragraphs = Array.from(xml.getElementsByTagNameNS("*", "p"));
-  return paragraphs.map((paragraph, paraIndex) => {
-    const text = Array.from(paragraph.getElementsByTagNameNS("*", "t"))
-      .map((node) => node.textContent || "")
-      .join("");
-    return {
-      id: createId(),
-      path,
-      paraIndex,
-      text,
-      kind: classifyParagraph(text),
-    };
-  });
+  const paraIndexByNode = new Map(paragraphs.map((paragraph, index) => [paragraph, index]));
+  const seenParagraphs = new Set();
+  const blocks = [];
+
+  const visit = (node) => {
+    if (!node || node.nodeType !== 1) return;
+    if (hasLocalName(node, "tbl")) {
+      blocks.push(extractTableBlock(path, node, paraIndexByNode));
+      for (const paragraph of Array.from(node.getElementsByTagNameNS("*", "p"))) {
+        seenParagraphs.add(paragraph);
+      }
+      return;
+    }
+    if (hasLocalName(node, "p")) {
+      if (!seenParagraphs.has(node)) {
+        blocks.push(createParagraphBlock(path, node, paraIndexByNode.get(node)));
+        seenParagraphs.add(node);
+      }
+      return;
+    }
+    for (const child of Array.from(node.children || [])) visit(child);
+  };
+
+  for (const child of Array.from(xml.documentElement?.children || [])) visit(child);
+  for (const paragraph of paragraphs) {
+    if (!seenParagraphs.has(paragraph)) {
+      blocks.push(createParagraphBlock(path, paragraph, paraIndexByNode.get(paragraph)));
+    }
+  }
+  return blocks;
+}
+
+function extractTableBlock(path, table, paraIndexByNode) {
+  const rows = directChildrenByLocalName(table, "tr").map((row) => ({
+    cells: directChildrenByLocalName(row, "tc").map((cell) => {
+      const paragraphs = Array.from(cell.getElementsByTagNameNS("*", "p")).map((paragraph) =>
+        createParagraphBlock(path, paragraph, paraIndexByNode.get(paragraph)),
+      );
+      return { id: createId(), paragraphs };
+    }),
+  }));
+
+  return {
+    type: "table",
+    id: createId(),
+    path,
+    rows,
+  };
+}
+
+function directChildrenByLocalName(node, localName) {
+  const direct = Array.from(node.children || []).filter((child) => hasLocalName(child, localName));
+  return direct.length ? direct : Array.from(node.getElementsByTagNameNS("*", localName));
+}
+
+function createParagraphBlock(path, paragraph, paraIndex) {
+  const text = readParagraphText(paragraph);
+  return {
+    type: "paragraph",
+    id: createId(),
+    path,
+    paraIndex,
+    text,
+    kind: classifyParagraph(text),
+  };
+}
+
+function hasLocalName(node, localName) {
+  return String(node.localName || node.nodeName || "").split(":").pop() === localName;
 }
 
 function classifyParagraph(text) {
@@ -384,18 +441,45 @@ function renderBlocks() {
 
   const blocks = state.blocks.length ? state.blocks : [{ id: createId(), text: "", kind: "normal" }];
   for (const block of blocks) {
-    const paragraph = document.createElement("div");
-    paragraph.className = `paragraph ${block.kind || "normal"}`;
-    paragraph.contentEditable = "true";
-    paragraph.dataset.id = block.id;
-    paragraph.dataset.path = block.path || "";
-    paragraph.dataset.paraIndex = String(block.paraIndex ?? "");
-    paragraph.textContent = block.text || "";
-    page.appendChild(paragraph);
+    page.appendChild(block.type === "table" ? renderTableBlock(block) : renderParagraphBlock(block));
   }
 
   els.documentSurface.appendChild(page);
   updateAll();
+}
+
+function renderParagraphBlock(block) {
+  const paragraph = document.createElement("div");
+  paragraph.className = `paragraph ${block.kind || "normal"}`;
+  paragraph.contentEditable = "true";
+  paragraph.dataset.id = block.id;
+  paragraph.dataset.path = block.path || "";
+  paragraph.dataset.paraIndex = String(block.paraIndex ?? "");
+  paragraph.textContent = block.text || "";
+  return paragraph;
+}
+
+function renderTableBlock(block) {
+  const table = document.createElement("table");
+  table.className = "inline-table source-table";
+  table.dataset.id = block.id;
+  table.dataset.path = block.path || "";
+  const tbody = document.createElement("tbody");
+
+  for (const row of block.rows) {
+    const tr = document.createElement("tr");
+    for (const cell of row.cells) {
+      const td = document.createElement("td");
+      td.dataset.id = cell.id;
+      const paragraphs = cell.paragraphs.length ? cell.paragraphs : [{ id: createId(), text: "", kind: "normal" }];
+      for (const paragraph of paragraphs) td.appendChild(renderParagraphBlock(paragraph));
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  return table;
 }
 
 function createStarterDocument() {
@@ -482,7 +566,7 @@ function updateStats() {
   const text = paragraphs.map((p) => p.text).join("\n");
   els.paraCount.textContent = String(paragraphs.length);
   els.charCount.textContent = String(text.replace(/\s/g, "").length);
-  els.tableCount.textContent = String(state.tableCount + $$(".inline-table").length);
+  els.tableCount.textContent = String(state.tableCount + getInsertedTables().length);
 }
 
 function updateOutline() {
@@ -560,14 +644,14 @@ function updateCompatibility() {
     penalty += 12;
   }
   if (info?.tables) {
-    items.push(["warn", `표 ${info.tables}개를 감지했습니다. 셀 텍스트 추출은 가능하지만 구조 편집은 부분 지원입니다.`]);
-    penalty += 12;
+    items.push(["ok", `표 ${info.tables}개를 감지했습니다. 셀 문단 텍스트는 원본 HWPX export 검증 대상입니다.`]);
+    penalty += 4;
   }
   if (info?.controls?.footnotes || info?.controls?.headers || info?.controls?.footers) {
     items.push(["warn", "각주/머리말/꼬리말 계열 구조가 있어 export 후 수동 확인이 필요합니다."]);
     penalty += 12;
   }
-  if ($$(".inline-table").length) {
+  if (getInsertedTables().length) {
     items.push(["warn", "브라우저에서 새로 삽입한 HTML 표는 HWPX 원본 구조 export에서 skipped로 보고됩니다."]);
     penalty += 10;
   }
@@ -705,7 +789,7 @@ function applyParagraphTemplate() {
 
 function insertEditableTable() {
   const table = document.createElement("table");
-  table.className = "inline-table";
+  table.className = "inline-table inserted-table";
   table.innerHTML = "<tbody><tr><td contenteditable=\"true\">항목</td><td contenteditable=\"true\">내용</td></tr><tr><td contenteditable=\"true\"></td><td contenteditable=\"true\"></td></tr></tbody>";
   const page = $(".paper-page");
   const active = document.activeElement?.closest?.(".paragraph");
@@ -791,7 +875,7 @@ async function generateEditedSourceHwpxBytes(options = {}) {
     exportZip.file(path, new XMLSerializer().serializeToString(xml));
   }
 
-  for (const [index, table] of $$(".inline-table").entries()) {
+  for (const [index, table] of getInsertedTables().entries()) {
     report.skipped.push({
       reason: "inserted-html-table-not-hwpx-roundtripped",
       index,
@@ -847,7 +931,7 @@ function createExportReport(mode) {
 async function createGeneratedExportReport(bytes) {
   const report = createExportReport("generated-hwpx");
   report.applied = getEditorParagraphs().map(({ index, kind, text }) => ({ index, kind, text }));
-  for (const [index, table] of $$(".inline-table").entries()) {
+  for (const [index, table] of getInsertedTables().entries()) {
     report.skipped.push({
       reason: "inserted-html-table-not-rhwp-generated",
       index,
@@ -922,6 +1006,10 @@ function readParagraphText(paragraph) {
   return Array.from(paragraph.getElementsByTagNameNS("*", "t"))
     .map((node) => node.textContent || "")
     .join("");
+}
+
+function getInsertedTables() {
+  return $$(".inline-table:not(.source-table)");
 }
 
 function normalizeText(value) {
@@ -1096,7 +1184,7 @@ function downloadReport() {
     compatibility: collectCompatibilitySnapshot(),
     document: {
       paragraphs: getEditorParagraphs().map(({ index, text, kind, path, paraIndex }) => ({ index, kind, path, paraIndex, text })),
-      insertedHtmlTables: $$(".inline-table").map((table, index) => ({ index, text: table.textContent.trim() })),
+      insertedHtmlTables: getInsertedTables().map((table, index) => ({ index, text: table.textContent.trim() })),
     },
   };
   downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "report.json"));

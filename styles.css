@@ -430,7 +430,23 @@ button {
   min-height: 36px;
   border: 1px solid #94a3b8;
   padding: 8px;
+  vertical-align: top;
   outline: none;
+}
+
+.source-table {
+  background: #fff;
+}
+
+.source-table .paragraph {
+  min-height: 24px;
+  margin: 0;
+  padding: 2px 4px;
+  line-height: 1.55;
+}
+
+.source-table .paragraph + .paragraph {
+  margin-top: 4px;
 }
 
 .quality-list,

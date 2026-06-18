@@ -45,6 +45,7 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - `.hwpx` 로컬 열기, `Contents/section*.xml` 분석, 문단 텍스트 편집
 - 원본 HWPX 패키지 구조를 유지한 저장과 저장 후 문단 라운드트립 검증
 - HWPX 패키지 인스펙터: 엔트리, 섹션, 스타일, 관계, 미디어, 표/각주/도형 감지
+- 기존 HWPX 표를 편집 가능한 표로 표시하고 셀 문단 텍스트 라운드트립 검증
 - 적용/스킵/검증 결과를 담은 Report JSON 내보내기
 - 공개 synthetic HWPX 샘플과 CI 회귀검사
 - `@rhwp/core` WASM 기반 정확 미리보기, 페이지 이동, 확대/축소, HWP 변환 보조

@@ -38,14 +38,19 @@ for (const name of expected.relationships) {
 }
 
 const patchedText = "브라우저에서 로컬 HWPX 문서를 열고 문단을 수정하고 검증합니다.";
+const patchedTableCellText = "검증 값 수정";
 const patchedEntries = [...entries].map(([name, data]) => ({
   name,
-  data: name === sectionPaths[0] ? data.toString("utf8").replace(expected.paragraphs[3], patchedText) : data,
+  data:
+    name === sectionPaths[0]
+      ? data.toString("utf8").replace(expected.paragraphs[3], patchedText).replace(expected.paragraphs[5], patchedTableCellText)
+      : data,
 }));
 const patchedZip = readZip(createZip(patchedEntries));
 const patchedParagraphs = extractTextNodes(patchedZip.get(sectionPaths[0]).toString("utf8"));
 assert(patchedParagraphs[3] === patchedText, "Patched HWPX round-trip paragraph mismatch");
 assert(patchedParagraphs[4] === expected.paragraphs[4], "Table cell paragraph changed unexpectedly during patch test");
+assert(patchedParagraphs[5] === patchedTableCellText, "Patched HWPX table-cell round-trip mismatch");
 
 console.log(`HWPX fixture OK: ${expected.fixture}`);
 console.log(`Sections: ${sectionPaths.length}, paragraphs: ${paragraphs.length}, tables: ${tableCount}`);
