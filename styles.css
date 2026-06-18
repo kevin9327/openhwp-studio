@@ -451,14 +451,16 @@ button {
 
 .quality-list,
 .change-list,
-.package-summary {
+.package-summary,
+.package-explorer {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 .quality-item,
-.package-item {
+.package-item,
+.explorer-row {
   display: grid;
   grid-template-columns: 9px 1fr;
   gap: 9px;
@@ -481,21 +483,25 @@ button {
 }
 
 .quality-item.warn i,
-.package-item.warn i {
+.package-item.warn i,
+.explorer-row.warn i {
   background: var(--amber);
 }
 
 .quality-item.info i,
-.package-item.info i {
+.package-item.info i,
+.explorer-row.info i {
   background: var(--blue);
 }
 
 .quality-item.danger i,
-.package-item.danger i {
+.package-item.danger i,
+.explorer-row.danger i {
   background: var(--rose);
 }
 
-.package-item i {
+.package-item i,
+.explorer-row i {
   width: 9px;
   height: 9px;
   border-radius: 3px;
@@ -503,17 +509,35 @@ button {
   background: var(--blue);
 }
 
-.package-item strong {
+.package-item strong,
+.explorer-row strong {
   display: block;
   color: var(--ink);
   font-size: 13px;
   margin-bottom: 2px;
+  overflow-wrap: anywhere;
 }
 
-.package-item span {
+.package-item span,
+.explorer-row span {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.package-tools {
+  margin: 10px 0 8px;
+}
+
+.package-tools select {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 9px;
+  background: #fff;
+  color: var(--ink);
 }
 
 .change-item {

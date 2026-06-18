@@ -86,6 +86,11 @@ fs.writeFileSync(
         counts: { danger: 0, warn: 0, info: 1 },
         issues: [{ id: "partial-table-editing", severity: "info" }],
       },
+      inspector: {
+        entryKinds: { manifest: 1, mimetype: 1, section: 1, style: 1 },
+        manifestItems: 2,
+        missingTargets: 0,
+      },
       paragraphs,
     },
     null,

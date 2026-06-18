@@ -46,6 +46,11 @@ assert(
   "Doctor issue list mismatch",
 );
 
+const inspector = inspectFixtureInspector(entries);
+assert(JSON.stringify(inspector.entryKinds) === JSON.stringify(expected.inspector.entryKinds), "Inspector entry kind counts mismatch");
+assert(inspector.manifestItems === expected.inspector.manifestItems, `Expected ${expected.inspector.manifestItems} manifest items, found ${inspector.manifestItems}`);
+assert(inspector.missingTargets === expected.inspector.missingTargets, `Expected ${expected.inspector.missingTargets} missing targets, found ${inspector.missingTargets}`);
+
 const patchedText = "브라우저에서 로컬 HWPX 문서를 열고 문단을 수정하고 검증합니다.";
 const patchedTableCellText = "검증 값 수정";
 const patchedEntries = [...entries].map(([name, data]) => ({
@@ -64,6 +69,63 @@ assert(patchedParagraphs[5] === patchedTableCellText, "Patched HWPX table-cell r
 console.log(`HWPX fixture OK: ${expected.fixture}`);
 console.log(`Sections: ${sectionPaths.length}, paragraphs: ${paragraphs.length}, tables: ${tableCount}`);
 console.log(`Doctor: score ${doctor.score}, status ${doctor.status}`);
+console.log(`Inspector: ${inspector.manifestItems} manifest items, ${inspector.missingTargets} missing target(s)`);
+
+function inspectFixtureInspector(entries) {
+  const entryNames = [...entries.keys()];
+  const entryKinds = {};
+  for (const name of entryNames) {
+    const kind = classifyFixtureEntry(name);
+    entryKinds[kind] = (entryKinds[kind] || 0) + 1;
+  }
+
+  const manifestItems = [];
+  for (const name of entryNames.filter((entry) => /(content\.hpf|manifest\.xml|\.rels)$/i.test(entry))) {
+    const xml = entries.get(name).toString("utf8");
+    for (const match of xml.matchAll(/\b(?:href|Target|full-path)="([^"]+)"/g)) {
+      const target = match[1];
+      if (!target || target === "/") continue;
+      const path = resolveFixtureTarget(name, target);
+      manifestItems.push({ source: name, target, path, exists: /^https?:|^urn:|^data:/i.test(target) || entries.has(path) });
+    }
+  }
+
+  return {
+    entryKinds: Object.fromEntries(Object.entries(entryKinds).sort(([a], [b]) => a.localeCompare(b))),
+    manifestItems: manifestItems.length,
+    missingTargets: manifestItems.filter((item) => !item.exists).length,
+  };
+}
+
+function classifyFixtureEntry(name) {
+  if (/^mimetype$/i.test(name)) return "mimetype";
+  if (/^Contents\/section\d+\.xml$/i.test(name)) return "section";
+  if (/(content\.hpf|manifest\.xml|\.rels)$/i.test(name)) return "manifest";
+  if (/(styles?|font|settings|theme|version)\.xml$/i.test(name)) return "style";
+  if (/(^BinData\/|^Contents\/media\/|\.(bmp|gif|jpe?g|png|svg|webp|wmf|emf)$)/i.test(name)) return "media";
+  if (/\.xml$/i.test(name)) return "xml";
+  return "other";
+}
+
+function resolveFixtureTarget(source, target) {
+  const clean = target.replace(/\\/g, "/").split("#")[0];
+  if (/^(https?:|urn:|data:|mailto:)/i.test(clean)) return clean;
+  if (clean.startsWith("/")) return normalizeFixturePath("", clean.slice(1));
+  const parts = source.split("/");
+  parts.pop();
+  return normalizeFixturePath(parts.join("/"), clean);
+}
+
+function normalizeFixturePath(base, target) {
+  const parts = `${base ? `${base}/` : ""}${target}`.split("/");
+  const normalized = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === "..") normalized.pop();
+    else normalized.push(part);
+  }
+  return normalized.join("/");
+}
 
 function inspectFixturePackage({ entries, sectionPaths, styles, relationships, tableCount, paragraphs }) {
   const issues = [];

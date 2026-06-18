@@ -5,7 +5,7 @@ This directory contains synthetic HWPX fixtures that are safe to commit and use 
 ## Files
 
 - `openhwp-basic.hwpx`: a small generated HWPX-style ZIP package with one section, six text nodes, a style file, relationship metadata, and one table.
-- `openhwp-basic.expected.json`: expected package entries, section paths, table count, package doctor score/issues, and extracted text for regression checks.
+- `openhwp-basic.expected.json`: expected package entries, section paths, table count, package doctor score/issues, package explorer counts, and extracted text for regression checks.
 
 ## Regeneration
 

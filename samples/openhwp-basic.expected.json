@@ -32,6 +32,16 @@
       }
     ]
   },
+  "inspector": {
+    "entryKinds": {
+      "manifest": 1,
+      "mimetype": 1,
+      "section": 1,
+      "style": 1
+    },
+    "manifestItems": 2,
+    "missingTargets": 0
+  },
   "paragraphs": [
     "OpenHWP Studio 샘플 문서",
     "작성일: 2026. 6. 19.",

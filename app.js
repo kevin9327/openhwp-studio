@@ -56,6 +56,8 @@ const els = {
   healthList: $("#healthList"),
   packageBadge: $("#packageBadge"),
   packageSummary: $("#packageSummary"),
+  packageViewSelect: $("#packageViewSelect"),
+  packageExplorer: $("#packageExplorer"),
   previewPane: $("#previewPane"),
   renderPreviewButton: $("#renderPreviewButton"),
   previewPrevButton: $("#previewPrevButton"),
@@ -100,6 +102,7 @@ function boot() {
   });
   els.templateSelect.addEventListener("change", applyParagraphTemplate);
   els.insertTableButton.addEventListener("click", insertEditableTable);
+  els.packageViewSelect.addEventListener("change", updatePackageExplorer);
   els.copyMarkdownButton.addEventListener("click", () => copyText(toMarkdown()));
   els.copyHtmlButton.addEventListener("click", () => copyText(toHtml()));
   els.downloadJsonButton.addEventListener("click", downloadJson);
@@ -305,11 +308,13 @@ async function loadHwpPreviewOnly(bytes) {
   state.packageInfo = {
     format: "HWP",
     entryCount: 0,
+    entryDetails: [],
     sections: 0,
     media: [],
     mediaDetails: [],
     styles: [],
     relationships: [],
+    relationshipDetails: [],
     tables: 0,
     controls: { images: 0, footnotes: 0, headers: 0, footers: 0, shapes: 0 },
     validation: null,
@@ -338,11 +343,13 @@ async function loadHwpPreviewOnly(bytes) {
 
 async function inspectHwpxPackage(zip, sectionPaths) {
   const entries = Object.keys(zip.files).filter((path) => !zip.files[path].dir);
+  const entryDetails = createEntryDetails(zip, entries);
   const media = entries.filter((path) => /(^BinData\/|^Contents\/media\/|\.(bmp|gif|jpe?g|png|svg|webp|wmf|emf)$)/i.test(path));
   const styles = entries.filter((path) => /(styles?|font|settings|theme|version)\.xml$/i.test(path));
   const relationships = entries.filter((path) => /(\.rels$|manifest\.xml$|content\.hpf$)/i.test(path));
   const manifestPaths = entries.filter((path) => /(content\.hpf|manifest\.xml|\.rels)$/i.test(path));
   const manifestTexts = await readPackageTexts(zip, manifestPaths);
+  const relationshipDetails = createRelationshipDetails(manifestTexts, entries);
   const controls = { images: 0, footnotes: 0, headers: 0, footers: 0, shapes: 0 };
   let tables = 0;
   let paragraphCount = 0;
@@ -371,6 +378,7 @@ async function inspectHwpxPackage(zip, sectionPaths) {
     sectionPaths,
     styles,
     relationships,
+    relationshipDetails,
     manifestPaths,
     mediaDetails,
     controls,
@@ -383,11 +391,13 @@ async function inspectHwpxPackage(zip, sectionPaths) {
   return {
     format: "HWPX",
     entryCount: entries.length,
+    entryDetails,
     sections: sectionPaths.length,
     media,
     mediaDetails,
     styles,
     relationships,
+    relationshipDetails,
     tables,
     controls,
     validation,
@@ -404,6 +414,33 @@ function getXmlParseError(xml) {
   return parserError?.textContent?.replace(/\s+/g, " ").trim().slice(0, 220) || "";
 }
 
+function createEntryDetails(zip, entries) {
+  return entries
+    .slice()
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map((path) => ({
+      path,
+      kind: classifyPackageEntry(path),
+      extension: extensionFromPath(path),
+      size: estimateZipEntrySize(zip, path),
+    }));
+}
+
+function classifyPackageEntry(path) {
+  if (/^mimetype$/i.test(path)) return "mimetype";
+  if (/^Contents\/section\d+\.xml$/i.test(path)) return "section";
+  if (/(content\.hpf|manifest\.xml|\.rels)$/i.test(path)) return "manifest";
+  if (/(styles?|font|settings|theme|version)\.xml$/i.test(path)) return "style";
+  if (/(^BinData\/|^Contents\/media\/|\.(bmp|gif|jpe?g|png|svg|webp|wmf|emf)$)/i.test(path)) return "media";
+  if (/\.xml$/i.test(path)) return "xml";
+  return "other";
+}
+
+function extensionFromPath(path) {
+  const fileName = path.split("/").pop() || "";
+  return fileName.includes(".") ? fileName.split(".").pop().toLowerCase() : "";
+}
+
 async function readPackageTexts(zip, paths) {
   const texts = [];
   for (const path of paths.slice(0, 12)) {
@@ -416,6 +453,89 @@ async function readPackageTexts(zip, paths) {
     }
   }
   return texts;
+}
+
+function createRelationshipDetails(manifestTexts, entries) {
+  const entrySet = new Set(entries);
+  const details = [];
+
+  for (const item of manifestTexts) {
+    const xml = parseXml(item.text);
+    const parserError = getXmlParseError(xml);
+    if (parserError) {
+      details.push({
+        sourcePath: item.path,
+        kind: "parse-error",
+        id: "",
+        target: "",
+        targetPath: "",
+        mediaType: "",
+        relationType: "",
+        exists: false,
+        parserError,
+      });
+      continue;
+    }
+
+    for (const node of Array.from(xml.getElementsByTagName("*"))) {
+      const localName = String(node.localName || node.nodeName || "").split(":").pop();
+      let target = "";
+      let kind = "";
+      if (localName === "item") {
+        target = node.getAttribute("href") || "";
+        kind = "manifest-item";
+      } else if (localName === "Relationship") {
+        target = node.getAttribute("Target") || "";
+        kind = "relationship";
+      } else if (localName === "file-entry") {
+        target = node.getAttribute("full-path") || "";
+        kind = "manifest-file";
+      }
+      if (!target || target === "/") continue;
+
+      const resolved = resolvePackageTarget(item.path, target, kind);
+      details.push({
+        sourcePath: item.path,
+        kind,
+        id: node.getAttribute("id") || node.getAttribute("Id") || "",
+        target,
+        targetPath: resolved.path,
+        mediaType: node.getAttribute("media-type") || node.getAttribute("mediaType") || "",
+        relationType: node.getAttribute("Type") || "",
+        external: resolved.external,
+        exists: resolved.external || entrySet.has(resolved.path),
+      });
+    }
+  }
+
+  return details;
+}
+
+function resolvePackageTarget(sourcePath, target, kind) {
+  const clean = String(target || "").replace(/\\/g, "/").split("#")[0];
+  if (/^(https?:|urn:|data:|mailto:)/i.test(clean)) return { path: clean, external: true };
+  if (clean.startsWith("/")) return { path: normalizePackagePath("", clean.slice(1)), external: false };
+  let base = packageDir(sourcePath);
+  if (kind === "relationship" && base.endsWith("/_rels")) base = base.slice(0, -"/_rels".length);
+  if (kind === "relationship" && base === "_rels") base = "";
+  return { path: normalizePackagePath(base, clean), external: false };
+}
+
+function packageDir(path) {
+  const parts = String(path || "").replace(/\\/g, "/").split("/");
+  parts.pop();
+  return parts.join("/");
+}
+
+function normalizePackagePath(base, target) {
+  const parts = `${base ? `${base}/` : ""}${target}`.split("/");
+  const normalized = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === "..") normalized.pop();
+    else normalized.push(part);
+  }
+  return normalized.join("/");
 }
 
 function createMediaDetail(zip, path, referenceCorpus) {
@@ -444,6 +564,7 @@ function createHwpxValidation(input) {
     sectionPaths,
     styles,
     relationships,
+    relationshipDetails,
     manifestPaths,
     mediaDetails,
     controls,
@@ -474,6 +595,10 @@ function createHwpxValidation(input) {
   }
   if (parseIssues.length) {
     addIssue("danger", "xml-parse-error", "Section XML parse error", `${parseIssues.length} section file(s) failed XML parsing.`, "Repair XML before source-preserving export.");
+  }
+  const missingTargets = relationshipDetails.filter((item) => !item.external && !item.exists);
+  if (missingTargets.length) {
+    addIssue("warn", "missing-relationship-target", "Manifest target is missing", `${missingTargets.length} manifest or relationship target(s) are not present in the package.`, "Open Package Explorer > Manifest and repair or remove missing targets.");
   }
   if (!paragraphCount) {
     addIssue("warn", "empty-text", "No editable paragraph text found", "The document may be image-only, control-heavy, or damaged.", "Use accurate preview and package report before editing.");
@@ -766,6 +891,7 @@ function updateAll() {
   updateCompatibility();
   updateHealth();
   updatePackageSummary();
+  updatePackageExplorer();
   updateSearch();
 }
 
@@ -1045,6 +1171,73 @@ function updatePackageSummary() {
     );
   }
   for (const warning of info.warnings || []) appendPackageItem("주의", warning, "warn");
+}
+
+function updatePackageExplorer() {
+  const info = state.packageInfo;
+  els.packageExplorer.innerHTML = "";
+
+  if (!info) {
+    els.packageViewSelect.disabled = true;
+    els.packageExplorer.innerHTML = `<div class="small-note">No package loaded</div>`;
+    return;
+  }
+
+  els.packageViewSelect.disabled = false;
+  const rows = getPackageExplorerRows(info, els.packageViewSelect.value);
+  if (!rows.length) {
+    els.packageExplorer.innerHTML = `<div class="small-note">No items in this view</div>`;
+    return;
+  }
+
+  const limit = 40;
+  for (const row of rows.slice(0, limit)) {
+    const item = document.createElement("div");
+    item.className = `explorer-row ${row.level || "ok"}`;
+    item.innerHTML = `<i></i><div><strong></strong><span></span></div>`;
+    item.querySelector("strong").textContent = row.title;
+    item.querySelector("span").textContent = row.detail;
+    els.packageExplorer.appendChild(item);
+  }
+
+  if (rows.length > limit) {
+    const rest = document.createElement("div");
+    rest.className = "small-note";
+    rest.textContent = `+${rows.length - limit} more package items`;
+    els.packageExplorer.appendChild(rest);
+  }
+}
+
+function getPackageExplorerRows(info, view) {
+  if (view === "manifest") {
+    return (info.relationshipDetails || []).map((item) => ({
+      level: item.exists ? "ok" : "danger",
+      title: item.id || item.target || item.kind,
+      detail: `${item.sourcePath} -> ${item.targetPath || item.target}${item.mediaType ? ` (${item.mediaType})` : ""}${item.external ? " external" : item.exists ? "" : " missing"}`,
+    }));
+  }
+
+  if (view === "media") {
+    return (info.mediaDetails || []).map((item) => ({
+      level: item.referenced ? "ok" : "warn",
+      title: item.fileName,
+      detail: `${item.path}${item.size ? `, ${formatBytes(item.size)}` : ""}, ${item.extension || "bin"}, ${item.referenced ? "referenced" : "unreferenced"}`,
+    }));
+  }
+
+  if (view === "issues") {
+    return (info.validation?.issues || []).map((issue) => ({
+      level: issue.severity,
+      title: issue.title,
+      detail: `${issue.id}: ${issue.action || issue.detail || ""}`,
+    }));
+  }
+
+  return (info.entryDetails || []).map((item) => ({
+    level: item.kind === "media" ? "warn" : "ok",
+    title: item.path,
+    detail: `${item.kind}${item.extension ? `, .${item.extension}` : ""}${item.size ? `, ${formatBytes(item.size)}` : ""}`,
+  }));
 }
 
 function renderStatusList(container, items) {

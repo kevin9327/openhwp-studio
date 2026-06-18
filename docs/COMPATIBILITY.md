@@ -20,9 +20,9 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | Area | Current level | Notes |
 | --- | --- | --- |
 | HWPX package open | Supported | Opens `.hwpx` ZIP packages and reads `Contents/section*.xml`. |
-| HWPX package inspection | Supported | Reports package entry counts, sections, styles, relationships, media, tables, and known risky controls. |
+| HWPX package inspection | Supported | Reports package entry counts, sections, styles, relationships, media, tables, known risky controls, and explorer views for entries, manifest targets, media, and issues. |
 | HWPX package doctor | Supported | Scores package health and reports missing required entries, XML parse issues, media reference risk, unsupported controls, and repair-plan hints. |
-| Public HWPX fixtures | Supported | Includes a synthetic HWPX fixture checked in CI for ZIP entries, section text extraction, table detection, package doctor expectations, and patch round-trip. |
+| Public HWPX fixtures | Supported | Includes a synthetic HWPX fixture checked in CI for ZIP entries, section text extraction, table detection, package doctor/explorer expectations, and patch round-trip. |
 | HWP binary open | Preview only | Uses `@rhwp/core` for rendering/inspection paths. Editing is focused on HWPX. |
 | Paragraph text extraction | Supported | Extracts paragraph text nodes from HWPX section XML. |
 | Paragraph text editing | Supported | Edits extracted paragraph text in the browser editor. |
