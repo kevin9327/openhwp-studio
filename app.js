@@ -12,6 +12,8 @@ const state = {
   xmlByPath: new Map(),
   blocks: [],
   tableCount: 0,
+  packageInfo: null,
+  lastExportReport: null,
   rhwp: null,
   lastRenderedBytes: null,
 };
@@ -39,6 +41,10 @@ const els = {
   searchHits: $("#searchHits"),
   qualityScore: $("#qualityScore"),
   qualityList: $("#qualityList"),
+  compatScore: $("#compatScore"),
+  compatList: $("#compatList"),
+  packageBadge: $("#packageBadge"),
+  packageSummary: $("#packageSummary"),
   previewPane: $("#previewPane"),
   renderPreviewButton: $("#renderPreviewButton"),
   templateSelect: $("#templateSelect"),
@@ -48,6 +54,7 @@ const els = {
   copyMarkdownButton: $("#copyMarkdownButton"),
   copyHtmlButton: $("#copyHtmlButton"),
   downloadJsonButton: $("#downloadJsonButton"),
+  downloadReportButton: $("#downloadReportButton"),
   downloadHwpButton: $("#downloadHwpButton"),
 };
 
@@ -70,6 +77,7 @@ function boot() {
   els.copyMarkdownButton.addEventListener("click", () => copyText(toMarkdown()));
   els.copyHtmlButton.addEventListener("click", () => copyText(toHtml()));
   els.downloadJsonButton.addEventListener("click", downloadJson);
+  els.downloadReportButton.addEventListener("click", downloadReport);
   els.downloadHwpButton.addEventListener("click", exportHwpWithRhwp);
 
   $$(".format-bar [data-command]").forEach((button) => {
@@ -138,6 +146,8 @@ async function loadFile(file) {
   state.xmlByPath = new Map();
   state.blocks = [];
   state.tableCount = 0;
+  state.packageInfo = null;
+  state.lastExportReport = null;
 
   els.fileNameLabel.textContent = file.name;
   els.sourceFormat.textContent = state.sourceFormat;
@@ -166,6 +176,8 @@ async function loadHwpx(bytes) {
   state.sectionPaths = sectionPaths;
   state.blocks = [];
   state.tableCount = 0;
+  state.packageInfo = await inspectHwpxPackage(zip, sectionPaths);
+  state.lastExportReport = null;
 
   for (const path of sectionPaths) {
     const xmlText = await zip.file(path).async("string");
@@ -180,6 +192,17 @@ async function loadHwpx(bytes) {
 }
 
 async function loadHwpPreviewOnly(bytes) {
+  state.packageInfo = {
+    format: "HWP",
+    entryCount: 0,
+    sections: 0,
+    media: [],
+    styles: [],
+    relationships: [],
+    tables: 0,
+    controls: { images: 0, footnotes: 0, headers: 0, footers: 0, shapes: 0 },
+    warnings: ["HWP binary editing is preview-only in the browser alpha."],
+  };
   state.blocks = [
     {
       id: createId(),
@@ -198,6 +221,50 @@ async function loadHwpPreviewOnly(bytes) {
   ];
   renderBlocks();
   await renderAccuratePreview();
+}
+
+async function inspectHwpxPackage(zip, sectionPaths) {
+  const entries = Object.keys(zip.files).filter((path) => !zip.files[path].dir);
+  const media = entries.filter((path) => /(^BinData\/|^Contents\/media\/|\.(bmp|gif|jpe?g|png|svg|webp|wmf|emf)$)/i.test(path));
+  const styles = entries.filter((path) => /(styles?|font|settings|theme|version)\.xml$/i.test(path));
+  const relationships = entries.filter((path) => /(\.rels$|manifest\.xml$|content\.hpf$)/i.test(path));
+  const controls = { images: 0, footnotes: 0, headers: 0, footers: 0, shapes: 0 };
+  let tables = 0;
+
+  for (const path of sectionPaths) {
+    const xmlText = await zip.file(path).async("string");
+    const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+    tables += countLocalNames(xml, ["tbl"]);
+    controls.images += countLocalNames(xml, ["pic", "img", "image"]);
+    controls.footnotes += countLocalNames(xml, ["footNote", "endNote", "footnote", "endnote"]);
+    controls.headers += countLocalNames(xml, ["header"]);
+    controls.footers += countLocalNames(xml, ["footer"]);
+    controls.shapes += countLocalNames(xml, ["shapeObject", "line", "rect", "ellipse", "arc"]);
+  }
+
+  const warnings = [];
+  if (!relationships.length) warnings.push("Package relationship metadata was not found.");
+  if (media.length) warnings.push("Images/media are preserved in source export but not editable yet.");
+  if (tables) warnings.push("Table text is readable, but structural table editing is partial.");
+  if (controls.footnotes) warnings.push("Footnotes/endnotes are detected but not editable yet.");
+  if (controls.headers || controls.footers) warnings.push("Headers/footers are detected but not editable yet.");
+  if (controls.shapes) warnings.push("Drawing objects are detected but not editable yet.");
+
+  return {
+    format: "HWPX",
+    entryCount: entries.length,
+    sections: sectionPaths.length,
+    media,
+    styles,
+    relationships,
+    tables,
+    controls,
+    warnings,
+  };
+}
+
+function countLocalNames(xml, names) {
+  return names.reduce((total, name) => total + xml.getElementsByTagNameNS("*", name).length, 0);
 }
 
 function extractBlocks(path, xml) {
@@ -258,6 +325,8 @@ function createStarterDocument() {
   state.xmlByPath = new Map();
   state.sectionPaths = [];
   state.tableCount = 0;
+  state.packageInfo = null;
+  state.lastExportReport = null;
   state.blocks = [
     { id: createId(), path: null, paraIndex: 0, text: "새 한글 문서", kind: "title" },
     { id: createId(), path: null, paraIndex: 1, text: "작성일: " + new Date().toLocaleDateString("ko-KR"), kind: "notice" },
@@ -286,6 +355,8 @@ function updateAll() {
   updateStats();
   updateOutline();
   updateQuality();
+  updateCompatibility();
+  updatePackageSummary();
   updateSearch();
 }
 
@@ -357,6 +428,106 @@ function updateQuality() {
     item.querySelector("span").textContent = message;
     els.qualityList.appendChild(item);
   }
+}
+
+function updateCompatibility() {
+  const info = state.packageInfo;
+  const items = [];
+  let penalty = 0;
+
+  if (state.sourceFormat === "HWP" && !state.zip) {
+    items.push(["warn", "HWP 바이너리는 rhwp 미리보기/변환 경로로 열립니다. 직접 편집 보장은 HWPX보다 낮습니다."]);
+    penalty += 25;
+  } else if (state.zip && state.xmlByPath.size) {
+    items.push(["ok", "HWPX 패키지를 로컬에서 열었고, 원본 ZIP 구조 보존 export 경로를 사용할 수 있습니다."]);
+  } else {
+    items.push(["ok", "새 HWPX 문서는 rhwp 생성 경로와 텍스트/HTML/Markdown/JSON export를 사용할 수 있습니다."]);
+  }
+
+  if (info?.media?.length) {
+    items.push(["warn", `미디어 ${info.media.length}개는 보존 대상이지만 앱 안 편집은 아직 지원하지 않습니다.`]);
+    penalty += 12;
+  }
+  if (info?.tables) {
+    items.push(["warn", `표 ${info.tables}개를 감지했습니다. 셀 텍스트 추출은 가능하지만 구조 편집은 부분 지원입니다.`]);
+    penalty += 12;
+  }
+  if (info?.controls?.footnotes || info?.controls?.headers || info?.controls?.footers) {
+    items.push(["warn", "각주/머리말/꼬리말 계열 구조가 있어 export 후 수동 확인이 필요합니다."]);
+    penalty += 12;
+  }
+  if ($$(".inline-table").length) {
+    items.push(["warn", "브라우저에서 새로 삽입한 HTML 표는 HWPX 원본 구조 export에서 skipped로 보고됩니다."]);
+    penalty += 10;
+  }
+  if (state.lastExportReport) {
+    const report = state.lastExportReport;
+    if (report.verification?.ok) {
+      items.push(["ok", `마지막 HWPX export 검증 통과: ${report.verification.checked}개 문단 라운드트립 확인.`]);
+    } else if (report.verification) {
+      items.push(["danger", `마지막 HWPX export 검증 실패: ${report.verification.mismatches.length}개 문단 불일치.`]);
+      penalty += 35;
+    }
+    if (report.skipped.length) {
+      items.push(["warn", `${report.skipped.length}개 항목을 안전하게 건너뛰고 리포트에 남겼습니다.`]);
+      penalty += 8;
+    }
+  }
+  if (items.length === 1) items.push(["ok", "문단 편집, 찾기/바꾸기, 텍스트 계열 export 경로가 준비되어 있습니다."]);
+
+  els.compatScore.textContent = String(Math.max(0, 100 - penalty));
+  renderStatusList(els.compatList, items);
+}
+
+function updatePackageSummary() {
+  const info = state.packageInfo;
+  els.packageSummary.innerHTML = "";
+
+  if (!info) {
+    els.packageBadge.textContent = "New";
+    appendPackageItem("작성 중", "아직 외부 HWPX/HWP 패키지를 열지 않았습니다.", "ok");
+    return;
+  }
+
+  els.packageBadge.textContent = info.format;
+  appendPackageItem("엔트리", `${info.entryCount || 0} files, ${info.sections || 0} section(s)`, "ok");
+  if (info.styles?.length) appendPackageItem("스타일", summarizePaths(info.styles), "ok");
+  if (info.relationships?.length) appendPackageItem("관계", summarizePaths(info.relationships), "ok");
+  if (info.media?.length) appendPackageItem("미디어", summarizePaths(info.media), "warn");
+  if (info.tables || info.controls?.images || info.controls?.footnotes || info.controls?.shapes) {
+    appendPackageItem(
+      "구조",
+      `tables ${info.tables || 0}, images ${info.controls?.images || 0}, footnotes ${info.controls?.footnotes || 0}, shapes ${info.controls?.shapes || 0}`,
+      "warn",
+    );
+  }
+  for (const warning of info.warnings || []) appendPackageItem("주의", warning, "warn");
+}
+
+function renderStatusList(container, items) {
+  container.innerHTML = "";
+  for (const [level, message] of items) {
+    const item = document.createElement("div");
+    item.className = `quality-item ${level}`;
+    item.innerHTML = `<i></i><span></span>`;
+    item.querySelector("span").textContent = message;
+    container.appendChild(item);
+  }
+}
+
+function appendPackageItem(title, detail, level = "ok") {
+  const item = document.createElement("div");
+  item.className = `package-item ${level}`;
+  item.innerHTML = `<i></i><div><strong></strong><span></span></div>`;
+  item.querySelector("strong").textContent = title;
+  item.querySelector("span").textContent = detail;
+  els.packageSummary.appendChild(item);
+}
+
+function summarizePaths(paths, limit = 3) {
+  const shown = paths.slice(0, limit).join(", ");
+  const extra = paths.length > limit ? ` 외 ${paths.length - limit}개` : "";
+  return `${shown}${extra}`;
 }
 
 function updateSearch() {
@@ -439,15 +610,14 @@ async function exportHwpx() {
     }
 
     if (state.zip && state.xmlByPath.size) {
-      if ($$(".inline-table").length) {
-        alert("삽입한 표는 현재 HWPX 구조 보존 저장에 포함되지 않습니다. 표까지 보존하려면 HTML/Markdown 내보내기를 사용해 주세요.");
-        return;
-      }
-
-      const bytes = await generateEditedSourceHwpxBytes();
+      const { bytes, report } = await generateEditedSourceHwpxBytes({ verify: true, updateReport: true });
       const blob = new Blob([bytes], { type: "application/hwpx" });
       downloadBlob(blob, renameExtension(state.fileName, "edited.hwpx"));
       state.lastRenderedBytes = bytes;
+      updateAll();
+      if (report.skipped.length) {
+        alert(`HWPX 저장은 완료했지만 ${report.skipped.length}개 항목은 안전하게 건너뛰고 Report에 남겼습니다.`);
+      }
       return;
     }
 
@@ -456,15 +626,20 @@ async function exportHwpx() {
       alert("HWPX 생성 엔진을 불러오지 못했습니다. HTML/TXT 내보내기를 별도로 선택해 주세요.");
       return;
     }
+    state.lastExportReport = await createGeneratedExportReport(bytes);
     const blob = new Blob([bytes], { type: "application/hwpx" });
     downloadBlob(blob, renameExtension(state.fileName, "hwpx"));
     state.lastRenderedBytes = bytes;
+    updateAll();
   } catch (error) {
     alert(`HWPX 저장 실패: ${error.message}`);
   }
 }
 
-async function generateEditedSourceHwpxBytes() {
+async function generateEditedSourceHwpxBytes(options = {}) {
+  const { verify = false, updateReport = false } = options;
+  await waitForJsZip();
+  const report = createExportReport("source-preserving-hwpx");
   const paragraphs = getEditorParagraphs().filter((p) => p.path);
   const byPath = new Map();
   for (const item of paragraphs) {
@@ -472,29 +647,166 @@ async function generateEditedSourceHwpxBytes() {
     byPath.get(item.path).push(item);
   }
 
+  const exportZip = await JSZip.loadAsync(state.originalBytes || (await state.zip.generateAsync({ type: "uint8array" })));
   for (const [path, items] of byPath) {
-    const xml = state.xmlByPath.get(path);
+    const sourceXml = state.xmlByPath.get(path);
+    if (!sourceXml) {
+      for (const item of items) report.skipped.push({ reason: "missing-section", path, index: item.index, text: item.text });
+      continue;
+    }
+    const xml = new DOMParser().parseFromString(new XMLSerializer().serializeToString(sourceXml), "application/xml");
     const xmlParagraphs = Array.from(xml.getElementsByTagNameNS("*", "p"));
     for (const item of items) {
       const paragraph = xmlParagraphs[item.paraIndex];
-      if (!paragraph) continue;
-      writeParagraphText(paragraph, item.text);
+      if (!paragraph) {
+        report.skipped.push({ reason: "missing-paragraph", path, index: item.index, paraIndex: item.paraIndex, text: item.text });
+        continue;
+      }
+      const runCount = paragraph.getElementsByTagNameNS("*", "t").length;
+      if (!writeParagraphText(paragraph, item.text)) {
+        report.skipped.push({ reason: "paragraph-has-no-text-node", path, index: item.index, paraIndex: item.paraIndex, text: item.text });
+        continue;
+      }
+      report.applied.push({ path, index: item.index, paraIndex: item.paraIndex, runCount, text: item.text });
     }
-    state.zip.file(path, new XMLSerializer().serializeToString(xml));
+    exportZip.file(path, new XMLSerializer().serializeToString(xml));
   }
 
-  return state.zip.generateAsync({
+  for (const [index, table] of $$(".inline-table").entries()) {
+    report.skipped.push({
+      reason: "inserted-html-table-not-hwpx-roundtripped",
+      index,
+      text: table.textContent.trim(),
+    });
+  }
+
+  const bytes = await exportZip.generateAsync({
     type: "uint8array",
     compression: "DEFLATE",
     compressionOptions: { level: 6 },
   });
+  if (verify) report.verification = await verifySourceHwpxExport(bytes, report.applied);
+  if (updateReport) state.lastExportReport = report;
+  return { bytes, report };
 }
 
 function writeParagraphText(paragraph, text) {
   const textNodes = Array.from(paragraph.getElementsByTagNameNS("*", "t"));
-  if (!textNodes.length) return;
-  textNodes[0].textContent = text;
-  for (const node of textNodes.slice(1)) node.textContent = "";
+  if (!textNodes.length) return false;
+  if (textNodes.length === 1) {
+    textNodes[0].textContent = text;
+    return true;
+  }
+
+  let remaining = text;
+  const originalLengths = textNodes.map((node) => (node.textContent || "").length);
+  textNodes.forEach((node, index) => {
+    if (index === textNodes.length - 1) {
+      node.textContent = remaining;
+      return;
+    }
+    const length = Math.min(remaining.length, originalLengths[index]);
+    node.textContent = remaining.slice(0, length);
+    remaining = remaining.slice(length);
+  });
+  return true;
+}
+
+function createExportReport(mode) {
+  return {
+    mode,
+    fileName: state.fileName,
+    sourceFormat: state.sourceFormat,
+    createdAt: new Date().toISOString(),
+    applied: [],
+    skipped: [],
+    warnings: [...(state.packageInfo?.warnings || [])],
+    verification: null,
+  };
+}
+
+async function createGeneratedExportReport(bytes) {
+  const report = createExportReport("generated-hwpx");
+  report.applied = getEditorParagraphs().map(({ index, kind, text }) => ({ index, kind, text }));
+  for (const [index, table] of $$(".inline-table").entries()) {
+    report.skipped.push({
+      reason: "inserted-html-table-not-rhwp-generated",
+      index,
+      text: table.textContent.trim(),
+    });
+  }
+  report.verification = await verifyGeneratedHwpxExport(bytes, report.applied);
+  return report;
+}
+
+async function verifySourceHwpxExport(bytes, applied) {
+  const result = { ok: true, checked: 0, mismatches: [] };
+  try {
+    await waitForJsZip();
+    const zip = await JSZip.loadAsync(bytes);
+    const xmlCache = new Map();
+    for (const item of applied) {
+      if (!xmlCache.has(item.path)) {
+        const file = zip.file(item.path);
+        if (!file) {
+          result.mismatches.push({ ...item, actual: null, reason: "missing-section-after-export" });
+          continue;
+        }
+        xmlCache.set(item.path, new DOMParser().parseFromString(await file.async("string"), "application/xml"));
+      }
+      const xml = xmlCache.get(item.path);
+      const paragraph = Array.from(xml.getElementsByTagNameNS("*", "p"))[item.paraIndex];
+      const actual = paragraph ? readParagraphText(paragraph) : null;
+      result.checked += 1;
+      if (normalizeText(actual) !== normalizeText(item.text)) {
+        result.mismatches.push({ ...item, actual, reason: "text-mismatch" });
+      }
+    }
+  } catch (error) {
+    result.mismatches.push({ reason: "verification-error", message: error.message });
+  }
+  result.ok = result.mismatches.length === 0;
+  return result;
+}
+
+async function verifyGeneratedHwpxExport(bytes, expectedItems) {
+  const result = { ok: true, checked: 0, mismatches: [] };
+  try {
+    await waitForJsZip();
+    const zip = await JSZip.loadAsync(bytes);
+    const sectionPaths = Object.keys(zip.files)
+      .filter((path) => /^Contents\/section\d+\.xml$/i.test(path))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const actualTexts = [];
+    for (const path of sectionPaths) {
+      const xml = new DOMParser().parseFromString(await zip.file(path).async("string"), "application/xml");
+      for (const paragraph of Array.from(xml.getElementsByTagNameNS("*", "p"))) {
+        actualTexts.push(readParagraphText(paragraph));
+      }
+    }
+    const actualJoined = normalizeText(actualTexts.join("\n"));
+    for (const item of expectedItems) {
+      if (!normalizeText(item.text)) continue;
+      result.checked += 1;
+      if (!actualJoined.includes(normalizeText(item.text))) {
+        result.mismatches.push({ index: item.index, expected: item.text, reason: "text-not-found-after-export" });
+      }
+    }
+  } catch (error) {
+    result.mismatches.push({ reason: "verification-error", message: error.message });
+  }
+  result.ok = result.mismatches.length === 0;
+  return result;
+}
+
+function readParagraphText(paragraph) {
+  return Array.from(paragraph.getElementsByTagNameNS("*", "t"))
+    .map((node) => node.textContent || "")
+    .join("");
+}
+
+function normalizeText(value) {
+  return String(value || "").replace(/\r\n/g, "\n").replace(/\u00a0/g, " ").trim();
 }
 
 async function createRhwpHwpxFromEditor() {
@@ -518,8 +830,12 @@ async function exportHwpWithRhwp() {
     const rhwp = await loadRhwp();
     let doc;
     if (state.zip && state.xmlByPath.size) {
-      const bytes = await generateEditedSourceHwpxBytes();
+      const { bytes, report } = await generateEditedSourceHwpxBytes({ verify: true, updateReport: true });
       state.lastRenderedBytes = bytes;
+      updateAll();
+      if (report.skipped.length) {
+        alert(`HWP 변환 전 ${report.skipped.length}개 항목을 안전하게 건너뛰었습니다. Report를 확인하세요.`);
+      }
       doc = new rhwp.HwpDocument(bytes);
     } else if (state.lastRenderedBytes) {
       doc = new rhwp.HwpDocument(state.lastRenderedBytes);
@@ -538,7 +854,8 @@ async function exportHwpWithRhwp() {
 
 async function renderAccuratePreview() {
   if (state.zip && state.xmlByPath.size) {
-    state.lastRenderedBytes = await generateEditedSourceHwpxBytes();
+    const { bytes } = await generateEditedSourceHwpxBytes({ verify: false, updateReport: false });
+    state.lastRenderedBytes = bytes;
   }
 
   if (!state.lastRenderedBytes && !state.originalBytes) {
@@ -620,9 +937,35 @@ function downloadJson() {
     fileName: state.fileName,
     sourceFormat: state.sourceFormat,
     exportedAt: new Date().toISOString(),
+    packageInfo: state.packageInfo,
+    lastExportReport: state.lastExportReport,
     paragraphs: getEditorParagraphs().map(({ index, text, kind }) => ({ index, kind, text })),
   };
   downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "json"));
+}
+
+function downloadReport() {
+  const data = {
+    product: "OpenHWP Studio",
+    generatedAt: new Date().toISOString(),
+    fileName: state.fileName,
+    sourceFormat: state.sourceFormat,
+    packageInfo: state.packageInfo,
+    lastExportReport: state.lastExportReport,
+    compatibility: collectCompatibilitySnapshot(),
+    document: {
+      paragraphs: getEditorParagraphs().map(({ index, text, kind, path, paraIndex }) => ({ index, kind, path, paraIndex, text })),
+      insertedHtmlTables: $$(".inline-table").map((table, index) => ({ index, text: table.textContent.trim() })),
+    },
+  };
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), renameExtension(state.fileName, "report.json"));
+}
+
+function collectCompatibilitySnapshot() {
+  return {
+    score: els.compatScore.textContent,
+    messages: $$("#compatList .quality-item span").map((node) => node.textContent),
+  };
 }
 
 async function copyText(text) {

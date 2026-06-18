@@ -417,13 +417,15 @@ button {
   outline: none;
 }
 
-.quality-list {
+.quality-list,
+.package-summary {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.quality-item {
+.quality-item,
+.package-item {
   display: grid;
   grid-template-columns: 9px 1fr;
   gap: 9px;
@@ -445,12 +447,35 @@ button {
   background: var(--green);
 }
 
-.quality-item.warn i {
+.quality-item.warn i,
+.package-item.warn i {
   background: var(--amber);
 }
 
-.quality-item.danger i {
+.quality-item.danger i,
+.package-item.danger i {
   background: var(--rose);
+}
+
+.package-item i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  margin-top: 5px;
+  background: var(--blue);
+}
+
+.package-item strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.package-item span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .preview-pane {
@@ -510,7 +535,7 @@ mark.search-hit {
   .right-panel {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 

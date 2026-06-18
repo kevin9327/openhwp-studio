@@ -153,6 +153,22 @@
 
           <section class="panel-section">
             <div class="panel-title">
+              <span>호환성</span>
+              <strong id="compatScore">-</strong>
+            </div>
+            <div id="compatList" class="quality-list"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>패키지</span>
+              <strong id="packageBadge">-</strong>
+            </div>
+            <div id="packageSummary" class="package-summary"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-title">
               <span>정확 미리보기</span>
               <button id="renderPreviewButton" class="mini-button" type="button" title="렌더링" aria-label="렌더링">
                 <i data-lucide="scan-eye"></i>
@@ -170,6 +186,7 @@
               <button id="copyMarkdownButton" type="button">Markdown</button>
               <button id="copyHtmlButton" type="button">HTML</button>
               <button id="downloadJsonButton" type="button">JSON</button>
+              <button id="downloadReportButton" type="button">Report</button>
               <button id="downloadHwpButton" type="button">HWP</button>
             </div>
           </section>

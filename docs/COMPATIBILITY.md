@@ -20,19 +20,21 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | Area | Current level | Notes |
 | --- | --- | --- |
 | HWPX package open | Supported | Opens `.hwpx` ZIP packages and reads `Contents/section*.xml`. |
+| HWPX package inspection | Supported | Reports package entry counts, sections, styles, relationships, media, tables, and known risky controls. |
 | HWP binary open | Preview only | Uses `@rhwp/core` for rendering/inspection paths. Editing is focused on HWPX. |
 | Paragraph text extraction | Supported | Extracts paragraph text nodes from HWPX section XML. |
 | Paragraph text editing | Supported | Edits extracted paragraph text in the browser editor. |
-| HWPX source-preserving export | Partial | Writes edited paragraph text back into the original package when section XML is available. |
+| HWPX source-preserving export | Partial | Writes edited paragraph text back into a cloned original package when section XML is available. |
+| HWPX export verification | Supported | Reloads exported HWPX bytes and compares patched paragraph text, then stores applied/skipped/mismatch details in the report JSON. |
 | New HWPX export | Experimental | Creates a simple document through `@rhwp/core` when possible; shows an explicit error instead of silently changing formats. |
 | HWP export | Experimental | Uses `@rhwp/core` conversion paths and needs more real-world validation. |
 | Accurate preview | Partial | Renders a page preview through `@rhwp/core`; coverage depends on the document feature set. |
 | Search and replace | Supported | Works on the current editor view. |
 | Outline and statistics | Supported | Counts paragraphs, characters, tables, and outline candidates from the editor state. |
 | Korean document quality checks | Partial | Includes early heuristic checks; the rule set should grow from real office, school, and public-agency examples. |
-| Tables | Partial | Existing tables are counted; inserted editor tables are simple HTML tables and are not yet full HWPX table round-trips. |
-| Images and drawings | Planned | Needs package inspection, relationship handling, and export regression samples. |
-| Headers, footers, footnotes | Planned | Not yet modeled in the editor. |
+| Tables | Partial | Existing tables are counted and reported; inserted editor tables are marked as skipped for source-preserving HWPX export. |
+| Images and drawings | Partial | Package media/drawing controls are detected and preserved by ZIP-level export, but not edited in the app. |
+| Headers, footers, footnotes | Partial | Detected and reported as manual-check risks; not yet modeled in the editor. |
 | Styles and layout fidelity | Partial | Basic paragraph classes and browser formatting exist; full HWPX style mapping is not implemented. |
 | Comments, track changes, forms | Planned | Useful for public-sector workflows, but not part of the alpha surface. |
 | Encrypted or password-protected files | Out of scope | Do not expect these files to open. |
@@ -47,6 +49,7 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | HTML | Supported | Simple HTML export/copy path for editor paragraphs. |
 | Markdown | Supported | Simple Markdown copy path based on paragraph kinds. |
 | JSON | Supported | Exports paragraph index, kind, and text for automation/debugging. |
+| Report JSON | Supported | Exports package inspection, compatibility messages, applied edits, skipped items, and export verification results. |
 | PDF | Partial | Browser print/PDF is available; this is not a layout-certified HWPX PDF renderer. |
 
 ## Browser Targets
