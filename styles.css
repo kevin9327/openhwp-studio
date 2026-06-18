@@ -450,6 +450,7 @@ button {
 }
 
 .quality-list,
+.change-list,
 .package-summary {
   display: flex;
   flex-direction: column;
@@ -508,6 +509,32 @@ button {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.change-item {
+  width: 100%;
+  border: 1px solid #e6edf4;
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 9px;
+  text-align: left;
+}
+
+.change-item strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.change-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-controls {

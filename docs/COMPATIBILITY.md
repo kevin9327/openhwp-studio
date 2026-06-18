@@ -32,6 +32,7 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | Accurate preview | Partial | Renders page previews through `@rhwp/core` with page navigation and zoom; coverage depends on the document feature set. |
 | Search and replace | Supported | Works on the current editor view. |
 | Unsaved change guard | Supported | Marks edited documents and warns before closing a dirty editor tab. |
+| Change tracking | Supported | Tracks paragraph and source-table cell text changes against the opened document baseline and includes them in JSON/Report exports. |
 | Outline and statistics | Supported | Counts paragraphs, characters, tables, and outline candidates from the editor state. |
 | Korean document quality checks | Partial | Includes early heuristic checks; the rule set should grow from real office, school, and public-agency examples. |
 | Tables | Partial | Existing HWPX tables render as editable tables and cell paragraph text participates in source-preserving export verification; inserted editor tables are marked as skipped. |

@@ -47,6 +47,7 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - HWPX 패키지 인스펙터: 엔트리, 섹션, 스타일, 관계, 미디어, 표/각주/도형 감지
 - 기존 HWPX 표를 편집 가능한 표로 표시하고 셀 문단 텍스트 라운드트립 검증
 - 적용/스킵/검증 결과를 담은 Report JSON 내보내기
+- 원본 대비 문단/표 셀 변경 추적과 Report JSON diff
 - 표 구조를 유지하는 TXT/Markdown/HTML/JSON export
 - `OpenHWPStudio` read-only export API와 공유 export 포맷터
 - 공개 synthetic HWPX 샘플과 CI 회귀검사

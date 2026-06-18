@@ -12,6 +12,7 @@ const state = {
   xmlByPath: new Map(),
   blocks: [],
   tableCount: 0,
+  baselineTexts: new Map(),
   packageInfo: null,
   lastExportReport: null,
   rhwp: null,
@@ -47,6 +48,8 @@ const els = {
   searchHits: $("#searchHits"),
   qualityScore: $("#qualityScore"),
   qualityList: $("#qualityList"),
+  changeCount: $("#changeCount"),
+  changeList: $("#changeList"),
   compatScore: $("#compatScore"),
   compatList: $("#compatList"),
   packageBadge: $("#packageBadge"),
@@ -163,6 +166,7 @@ function markDirty() {
 }
 
 function markClean() {
+  if ($(".paper-page")) captureBaselineFromBlocks(getEditorBlocks());
   state.isDirty = false;
   updateDirtyStatus();
 }
@@ -179,6 +183,7 @@ function exposePublicApi() {
     exportMarkdown: () => toMarkdown(),
     exportText: () => toPlainText(),
     getBlocks: () => getSerializableBlocks(),
+    getChanges: () => getSerializableChanges(),
     getState: () => ({
       fileName: state.fileName,
       sourceFormat: state.sourceFormat,
@@ -241,6 +246,7 @@ async function loadFile(file) {
   state.xmlByPath = new Map();
   state.blocks = [];
   state.tableCount = 0;
+  state.baselineTexts = new Map();
   state.packageInfo = null;
   state.lastExportReport = null;
   state.previewPage = 0;
@@ -287,6 +293,7 @@ async function loadHwpx(bytes) {
     state.blocks.push(...extractBlocks(path, xml));
   }
 
+  captureBaselineFromBlocks(state.blocks);
   renderBlocks();
   renderAccuratePreview().catch(() => {});
 }
@@ -319,6 +326,7 @@ async function loadHwpPreviewOnly(bytes) {
       kind: "normal",
     },
   ];
+  captureBaselineFromBlocks(state.blocks);
   renderBlocks();
   await renderAccuratePreview();
 }
@@ -500,6 +508,23 @@ function renderTableBlock(block) {
   return table;
 }
 
+function captureBaselineFromBlocks(blocks) {
+  state.baselineTexts = new Map();
+  for (const paragraph of flattenBlockParagraphs(blocks)) {
+    state.baselineTexts.set(paragraphKey(paragraph), paragraph.text || "");
+  }
+}
+
+function flattenBlockParagraphs(blocks) {
+  return blocks.flatMap((block) => {
+    if (block.type === "table") {
+      return block.rows.flatMap((row) => row.cells.flatMap((cell) => cell.paragraphs));
+    }
+    if (block.type === "paragraph" && block.paragraph) return [block.paragraph];
+    return [block];
+  });
+}
+
 function createStarterDocument() {
   state.fileName = "untitled.hwpx";
   state.sourceFormat = "HWPX";
@@ -509,6 +534,7 @@ function createStarterDocument() {
   state.xmlByPath = new Map();
   state.sectionPaths = [];
   state.tableCount = 0;
+  state.baselineTexts = new Map();
   state.packageInfo = null;
   state.lastExportReport = null;
   state.previewPage = 0;
@@ -520,6 +546,7 @@ function createStarterDocument() {
     { id: createId(), path: null, paraIndex: 2, text: "1. 핵심 내용", kind: "report" },
     { id: createId(), path: null, paraIndex: 3, text: "본문을 입력하세요.", kind: "normal" },
   ];
+  captureBaselineFromBlocks(state.blocks);
   els.fileNameLabel.textContent = state.fileName;
   els.sourceFormat.textContent = state.sourceFormat;
   els.previewPane.innerHTML = `<div class="preview-empty">No preview</div>`;
@@ -568,6 +595,7 @@ function readTableBlockFromDom(table) {
 }
 
 function readParagraphFromDom(node) {
+  const table = node.closest("table.inline-table");
   return {
     node,
     id: node.dataset.id,
@@ -575,6 +603,8 @@ function readParagraphFromDom(node) {
     paraIndex: Number(node.dataset.paraIndex),
     text: node.innerText.replace(/\u00a0/g, " "),
     kind: Array.from(node.classList).find((name) => ["title", "notice", "report"].includes(name)) || "normal",
+    inTable: !!table,
+    tableSource: table?.classList.contains("source-table") ? "source" : table ? "inserted" : null,
   };
 }
 
@@ -582,6 +612,7 @@ function updateAll() {
   updateStats();
   updateOutline();
   updateQuality();
+  updateChanges();
   updateCompatibility();
   updatePackageSummary();
   updateSearch();
@@ -679,6 +710,77 @@ function updateQuality() {
     item.querySelector("span").textContent = message;
     els.qualityList.appendChild(item);
   }
+}
+
+function updateChanges() {
+  const changes = collectChanges();
+  els.changeCount.textContent = String(changes.length);
+  els.changeList.innerHTML = "";
+
+  if (!changes.length) {
+    els.changeList.innerHTML = `<div class="small-note">No changes</div>`;
+    return;
+  }
+
+  for (const change of changes.slice(0, 12)) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "change-item";
+    item.innerHTML = `<strong></strong><span></span>`;
+    item.querySelector("strong").textContent = change.label;
+    item.querySelector("span").textContent = summarizeChange(change);
+    item.addEventListener("click", () => change.node?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    els.changeList.appendChild(item);
+  }
+
+  if (changes.length > 12) {
+    const rest = document.createElement("div");
+    rest.className = "small-note";
+    rest.textContent = `+${changes.length - 12} more changes`;
+    els.changeList.appendChild(rest);
+  }
+}
+
+function collectChanges() {
+  const changes = [];
+  const seen = new Set();
+  for (const paragraph of getEditorParagraphs()) {
+    const key = paragraphKey(paragraph);
+    seen.add(key);
+    const before = state.baselineTexts.get(key);
+    const after = paragraph.text || "";
+    if (before === undefined && normalizeText(after)) {
+      changes.push({ type: "added", key, before: "", after, label: changeLabel(paragraph, "Added"), ...paragraph });
+    } else if (before !== undefined && before !== after) {
+      changes.push({ type: "modified", key, before, after, label: changeLabel(paragraph, "Changed"), ...paragraph });
+    }
+  }
+
+  for (const [key, before] of state.baselineTexts.entries()) {
+    if (!seen.has(key) && normalizeText(before)) {
+      changes.push({ type: "deleted", key, before, after: "", text: "", kind: "normal", inTable: false, label: "Deleted paragraph" });
+    }
+  }
+  return changes;
+}
+
+function changeLabel(paragraph, prefix) {
+  const target = paragraph.inTable ? "table cell" : "paragraph";
+  const index = Number.isFinite(Number(paragraph.paraIndex)) ? ` ${paragraph.paraIndex}` : "";
+  return `${prefix} ${target}${index}`;
+}
+
+function paragraphKey(paragraph) {
+  if (paragraph.path && Number.isFinite(Number(paragraph.paraIndex))) return `${paragraph.path}#${paragraph.paraIndex}`;
+  return `id:${paragraph.id || paragraph.index || ""}`;
+}
+
+function summarizeChange(change) {
+  const before = normalizeText(change.before);
+  const after = normalizeText(change.after);
+  if (change.type === "added") return after.slice(0, 80);
+  if (change.type === "deleted") return before.slice(0, 80);
+  return `${before.slice(0, 42)} -> ${after.slice(0, 42)}`;
 }
 
 function updateCompatibility() {
@@ -1218,6 +1320,7 @@ function createJsonExportData() {
     exportedAt: new Date().toISOString(),
     packageInfo: state.packageInfo,
     lastExportReport: state.lastExportReport,
+    changes: getSerializableChanges(),
     blocks: getSerializableBlocks(),
     paragraphs: getEditorParagraphs().map(({ index, text, kind }) => ({ index, kind, text })),
   };
@@ -1236,12 +1339,17 @@ function createReportData() {
     packageInfo: state.packageInfo,
     lastExportReport: state.lastExportReport,
     compatibility: collectCompatibilitySnapshot(),
+    changes: getSerializableChanges(),
     document: {
       blocks: getSerializableBlocks(),
       paragraphs: getEditorParagraphs().map(({ index, text, kind, path, paraIndex }) => ({ index, kind, path, paraIndex, text })),
       insertedHtmlTables: getInsertedTables().map((table, index) => ({ index, text: table.textContent.trim() })),
     },
   };
+}
+
+function getSerializableChanges() {
+  return collectChanges().map(({ node, ...change }) => change);
 }
 
 function getSerializableBlocks() {
