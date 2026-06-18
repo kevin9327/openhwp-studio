@@ -1,0 +1,80 @@
+name: Compatibility report
+description: Report how a real HWPX/HWP file behaves.
+title: "[Compatibility]: "
+labels:
+  - compatibility
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Compatibility reports help turn "works on my file" into reliable support.
+
+        Please use a public, synthetic, or sanitized document whenever possible. Never attach private documents without permission.
+  - type: dropdown
+    id: document-format
+    attributes:
+      label: Document format
+      options:
+        - HWPX
+        - HWP
+        - Unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: feature-area
+    attributes:
+      label: Feature area
+      options:
+        - Open/import
+        - Paragraph text
+        - Tables
+        - Images or drawings
+        - Styles or layout
+        - Headers, footers, or footnotes
+        - Preview rendering
+        - HWPX export
+        - HWP export
+        - TXT/HTML/Markdown/JSON export
+        - Browser behavior
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser-os
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 126 on Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: document-summary
+    attributes:
+      label: Document summary
+      description: Describe the document without exposing sensitive content.
+      placeholder: "Example: 3-page HWPX report with one table, two images, numbered headings, and footnotes."
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened?
+      description: Include what worked and what did not.
+    validations:
+      required: true
+  - type: dropdown
+    id: sample-status
+    attributes:
+      label: Sample availability
+      options:
+        - Public sample attached or linked
+        - Sanitized sample can be prepared
+        - Cannot share sample
+        - Need help creating a synthetic sample
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Console errors, screenshots, or before/after export observations.

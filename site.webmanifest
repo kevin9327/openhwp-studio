@@ -1,0 +1,17 @@
+{
+  "name": "OpenHWP Studio",
+  "short_name": "OpenHWP",
+  "description": "Local-first browser workspace for Korean HWPX/HWP documents.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#edf2f7",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

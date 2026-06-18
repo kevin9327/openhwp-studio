@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+dist/
+coverage/
+verify-*.png
+*.hwpx
+*.hwp
+!samples/**/*.hwpx
+!samples/**/*.hwp

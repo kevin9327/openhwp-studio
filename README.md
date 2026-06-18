@@ -1,1 +1,114 @@
 # OpenHWP Studio
+
+한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 고치고, 점검하고, 변환하는 로컬 우선 문서 작업대입니다.
+
+> Status: alpha. 지금은 HWPX 문단 편집과 구조 보존 저장에 집중합니다. HWP 바이너리는 `rhwp` 기반 미리보기/변환 흐름으로 다룹니다.
+
+![OpenHWP Studio screenshot](docs/assets/openhwp-studio.jpg)
+
+## 한 줄 포지션
+
+`rhwp`가 엔진이라면, OpenHWP Studio는 한국 문서 실무자가 바로 쓰는 HWPX 작업대입니다.
+
+## 30초 데모
+
+1. `.hwpx` 파일을 브라우저에 드롭합니다.
+2. 문단을 바로 수정하고 문서 개요, 통계, 품질 점검을 확인합니다.
+3. 원본 HWPX 패키지 구조를 유지한 채 저장하거나 Markdown/HTML/TXT/JSON/HWP로 내보냅니다.
+
+## 왜 필요한가
+
+한국의 공공기관, 학교, 법원, 회사에는 아직도 HWP/HWPX 문서가 많습니다. 그런데 대부분의 오픈소스 도구는 세 가지 중 하나에 머뭅니다.
+
+- 엔진은 강하지만 일반 사용자가 바로 쓰기 어렵다.
+- 뷰어는 되지만 문서 수리, 검수, 변환 흐름이 약하다.
+- 특정 에디터나 데스크톱 앱 안에 갇힌다.
+
+OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 업무에서 고치고 검수하는 웹 작업대를 목표로 합니다.
+
+## 바로 이기는 지점
+
+- 설치 없는 웹 앱: 데스크톱 설치나 에디터 확장 없이 바로 실행
+- 로컬 우선: 문서를 서버로 업로드하지 않는 방향
+- HWPX 구조 보존: 가능한 한 기존 패키지 구조를 유지하며 편집 저장
+- 문서 검수 UX: 개요, 통계, 품질 규칙, 변환을 한 화면에 배치
+- 엔진 친화: `@rhwp/core` 위에 사용자 경험과 워크플로를 얹는 구조
+
+## 기능
+
+- `.hwpx` 로컬 열기, `Contents/section*.xml` 분석, 문단 텍스트 편집
+- 원본 HWPX 패키지 구조를 유지한 저장
+- `@rhwp/core` WASM 기반 정확 미리보기와 HWP 변환 보조
+- 문서 개요, 문단/글자/표 통계
+- 찾기/바꾸기, Markdown/HTML/TXT/JSON 내보내기
+- 문서 품질 점검: 제목 누락, 긴 문단, 반복 표현 등
+- 브라우저 인쇄/PDF 저장
+
+## 포지셔닝
+
+| 프로젝트 | 강점 | OpenHWP Studio가 노리는 자리 |
+| --- | --- | --- |
+| `rhwp` | Rust/WASM 기반 HWP/HWPX 핵심 엔진 | 엔진 위의 사용성, 검수, 변환 UX |
+| `HOP` | 데스크톱 앱과 OS 통합 | 설치 없는 브라우저 작업대 |
+| VS Code 확장 | 개발자/AI 에디터 통합 | 비개발자도 쓰는 문서 작업 화면 |
+
+## 실행
+
+정적 앱이라 `index.html`을 직접 열 수 있습니다. 정확 미리보기와 CDN WASM 로딩까지 안정적으로 쓰려면 로컬 서버를 권장합니다.
+
+```powershell
+npm start
+```
+
+Node가 PATH에 없다면:
+
+```powershell
+& "C:\Users\swsz9\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe" .\server.js
+```
+
+브라우저 주소:
+
+```text
+http://localhost:4180
+```
+
+## 개발
+
+```powershell
+npm run check
+```
+
+## 로드맵
+
+- HWPX 표/이미지/각주 구조 편집
+- HWP -> HWPX 변환 후 편집 가능한 워크플로
+- 한컴/공공 문서 호환성 샘플 테스트셋
+- 문서 diff, 복구, 깨진 HWPX 자동 수리
+- GitHub Pages 데모와 샘플 문서
+- 브라우저 확장/파일 연결
+- AI 문서 정리 플러그인: 민감정보 마스킹, 공문체 교정, 요약
+
+## 한계
+
+- HWPX 문단 텍스트 편집은 작동하지만, 모든 HWPX 컨트롤을 완전 편집하지는 않습니다.
+- HWP 바이너리의 완전 편집은 아직 목표가 아니라 미리보기/변환 중심입니다.
+- CDN으로 JSZip, lucide, `@rhwp/core`를 불러옵니다. 완전 오프라인 배포는 후속 작업입니다.
+
+## 추천 GitHub Topics
+
+`hwp`, `hwpx`, `hancom`, `hangul`, `korean`, `document-editor`, `document-conversion`, `rhwp`, `wasm`, `local-first`
+
+## 프로젝트 문서
+
+- [Compatibility Matrix](docs/COMPATIBILITY.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Korean Launch Note](docs/LAUNCH_KO.md)
+- [Launch Plan](docs/LAUNCH_PLAN.md)
+
+## 크레딧
+
+문서 파싱/렌더링의 핵심은 MIT 라이선스의 [`@rhwp/core`](https://github.com/edwardkim/rhwp)를 사용합니다. OpenHWP Studio는 그 위에 로컬 문서 작업 UX를 얹는 프로젝트입니다.
+
+## 라이선스
+
+MIT

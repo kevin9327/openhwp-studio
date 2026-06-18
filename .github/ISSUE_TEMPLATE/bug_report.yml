@@ -1,0 +1,79 @@
+name: Bug report
+description: Report a reproducible problem in OpenHWP Studio.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve OpenHWP Studio.
+
+        한국어와 English 모두 환영합니다.
+
+        Do not upload private legal, school, medical, finance, HR, government, or company documents unless you have permission to share them publicly.
+  - type: dropdown
+    id: file-type
+    attributes:
+      label: File type
+      options:
+        - HWPX
+        - HWP
+        - New document created in the app
+        - Not file-specific
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 126, Edge 126, Firefox 127, Safari 18
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11, macOS, Ubuntu, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Make the smallest sequence possible.
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. Export ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors or screenshots
+      description: Paste text errors when possible. Screenshots are welcome if they do not reveal private content.
+      render: text
+  - type: dropdown
+    id: sample
+    attributes:
+      label: Can you share a sanitized sample file?
+      options:
+        - "Yes, I can attach or link a public sample"
+        - "No, the document is private"
+        - "Not sure yet"
+    validations:
+      required: true

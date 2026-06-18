@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Local-first browser workbench for opening, inspecting, editing, and converting Korean HWPX/HWP documents."
+    />
+    <meta name="theme-color" content="#2563eb" />
+    <title>OpenHWP Studio</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./site.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer crossorigin="anonymous" src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">ㅎ</div>
+          <div>
+            <strong>OpenHWP Studio</strong>
+            <span id="engineStatus">HWPX ready</span>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <input id="fileInput" type="file" accept=".hwpx,.hwp" hidden />
+          <button id="openButton" class="command primary" type="button">
+            <i data-lucide="folder-open"></i>
+            <span>열기</span>
+          </button>
+          <button id="newButton" class="command" type="button">
+            <i data-lucide="file-plus-2"></i>
+            <span>새 문서</span>
+          </button>
+          <button id="exportHwpxButton" class="command" type="button">
+            <i data-lucide="download"></i>
+            <span>HWPX</span>
+          </button>
+          <button id="exportTextButton" class="icon-command" type="button" title="텍스트 저장" aria-label="텍스트 저장">
+            <i data-lucide="file-text"></i>
+          </button>
+          <button id="printButton" class="icon-command" type="button" title="인쇄/PDF" aria-label="인쇄/PDF">
+            <i data-lucide="printer"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="left-panel">
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>문서</span>
+              <strong id="fileNameLabel">untitled.hwpx</strong>
+            </div>
+            <div class="stat-grid">
+              <div><span>문단</span><strong id="paraCount">0</strong></div>
+              <div><span>글자</span><strong id="charCount">0</strong></div>
+              <div><span>표</span><strong id="tableCount">0</strong></div>
+              <div><span>쪽</span><strong id="pageCount">-</strong></div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>개요</span>
+              <button id="refreshOutline" class="mini-button" type="button" title="개요 새로고침" aria-label="개요 새로고침">
+                <i data-lucide="refresh-cw"></i>
+              </button>
+            </div>
+            <nav id="outlineList" class="outline-list" aria-label="문서 개요"></nav>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>찾기</span>
+              <button id="replaceButton" class="mini-button" type="button" title="모두 바꾸기" aria-label="모두 바꾸기">
+                <i data-lucide="replace"></i>
+              </button>
+            </div>
+            <label class="field">
+              <span>찾을 말</span>
+              <input id="findInput" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>바꿀 말</span>
+              <input id="replaceInput" autocomplete="off" />
+            </label>
+            <div id="searchHits" class="small-note">0 matches</div>
+          </section>
+        </aside>
+
+        <section class="editor-stage">
+          <div class="format-bar" role="toolbar" aria-label="문서 도구">
+            <button data-command="bold" class="icon-command" type="button" title="굵게" aria-label="굵게">
+              <i data-lucide="bold"></i>
+            </button>
+            <button data-command="italic" class="icon-command" type="button" title="기울임" aria-label="기울임">
+              <i data-lucide="italic"></i>
+            </button>
+            <button data-command="insertUnorderedList" class="icon-command" type="button" title="글머리표" aria-label="글머리표">
+              <i data-lucide="list"></i>
+            </button>
+            <button data-command="justifyLeft" class="icon-command" type="button" title="왼쪽 정렬" aria-label="왼쪽 정렬">
+              <i data-lucide="align-left"></i>
+            </button>
+            <button data-command="justifyCenter" class="icon-command" type="button" title="가운데 정렬" aria-label="가운데 정렬">
+              <i data-lucide="align-center"></i>
+            </button>
+            <button data-command="justifyRight" class="icon-command" type="button" title="오른쪽 정렬" aria-label="오른쪽 정렬">
+              <i data-lucide="align-right"></i>
+            </button>
+            <div class="divider"></div>
+            <select id="templateSelect" aria-label="서식">
+              <option value="normal">본문</option>
+              <option value="title">제목</option>
+              <option value="notice">공문</option>
+              <option value="report">보고서</option>
+            </select>
+            <button id="insertTableButton" class="command" type="button">
+              <i data-lucide="table-2"></i>
+              <span>표</span>
+            </button>
+          </div>
+
+          <div id="dropZone" class="drop-zone">
+            <div class="drop-mark">
+              <i data-lucide="file-input"></i>
+            </div>
+            <h1>HWPX 문서 작업대</h1>
+            <p>로컬 파일만 사용합니다. HWPX는 편집/저장, HWP는 미리보기 중심으로 처리합니다.</p>
+            <button id="emptyOpenButton" class="command primary" type="button">
+              <i data-lucide="folder-open"></i>
+              <span>파일 선택</span>
+            </button>
+          </div>
+
+          <article id="documentSurface" class="document-surface" aria-label="편집 문서"></article>
+        </section>
+
+        <aside class="right-panel">
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>품질</span>
+              <strong id="qualityScore">0</strong>
+            </div>
+            <div id="qualityList" class="quality-list"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>정확 미리보기</span>
+              <button id="renderPreviewButton" class="mini-button" type="button" title="렌더링" aria-label="렌더링">
+                <i data-lucide="scan-eye"></i>
+              </button>
+            </div>
+            <div id="previewPane" class="preview-pane"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-title">
+              <span>변환</span>
+              <strong id="sourceFormat">HWPX</strong>
+            </div>
+            <div class="export-grid">
+              <button id="copyMarkdownButton" type="button">Markdown</button>
+              <button id="copyHtmlButton" type="button">HTML</button>
+              <button id="downloadJsonButton" type="button">JSON</button>
+              <button id="downloadHwpButton" type="button">HWP</button>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

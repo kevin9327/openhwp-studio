@@ -1,0 +1,62 @@
+name: Feature request
+description: Suggest a focused improvement for HWPX/HWP workflows.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement.
+
+        The strongest requests describe a real Korean document workflow, the current friction, and how the feature can stay local-first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow
+      description: What are you trying to do with HWPX/HWP documents?
+      placeholder: "Example: I need to compare two HWPX notices and see exactly which paragraphs changed."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should OpenHWP Studio add or change?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - HWPX open/edit
+        - HWP preview/conversion
+        - Export
+        - Diff/repair
+        - Korean quality rules
+        - Browser/offline support
+        - CLI/automation
+        - Documentation/community
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Privacy or compatibility constraints
+      description: Mention whether documents are sensitive, public, large, or require exact layout preservation.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives tried
+      description: Other tools, manual workflows, scripts, or workarounds.
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I can help test this with a public or sanitized sample file.
+        - label: I can help document the workflow.
+        - label: I may be able to contribute code.

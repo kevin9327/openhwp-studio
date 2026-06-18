@@ -1,0 +1,33 @@
+{
+  "name": "openhwp-studio",
+  "version": "0.1.0-alpha.0",
+  "private": false,
+  "description": "Local-first browser workspace for opening, inspecting, editing, and converting Korean HWPX/HWP documents.",
+  "type": "commonjs",
+  "homepage": "https://github.com/kevin9327/openhwp-studio#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevin9327/openhwp-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kevin9327/openhwp-studio/issues"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check app.js && node --check server.js"
+  },
+  "keywords": [
+    "hwp",
+    "hwpx",
+    "hancom",
+    "hangul",
+    "korean",
+    "document",
+    "editor",
+    "viewer",
+    "rhwp",
+    "wasm"
+  ],
+  "author": "",
+  "license": "MIT"
+}
