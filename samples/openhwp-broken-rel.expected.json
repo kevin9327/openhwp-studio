@@ -1,5 +1,5 @@
 {
-  "fixture": "openhwp-basic.hwpx",
+  "fixture": "openhwp-broken-rel.hwpx",
   "generatedBy": "scripts/create-sample-hwpx.js",
   "entries": [
     "mimetype",
@@ -18,14 +18,18 @@
   ],
   "tableCount": 1,
   "doctor": {
-    "score": 97,
-    "status": "ready",
+    "score": 85,
+    "status": "review",
     "counts": {
       "danger": 0,
-      "warn": 0,
+      "warn": 1,
       "info": 1
     },
     "issues": [
+      {
+        "id": "missing-relationship-target",
+        "severity": "warn"
+      },
       {
         "id": "partial-table-editing",
         "severity": "info"
@@ -33,7 +37,7 @@
     ],
     "repairModes": {
       "auto": 0,
-      "manual": 0,
+      "manual": 1,
       "blocked": 0,
       "verify": 1
     }
@@ -45,8 +49,8 @@
       "section": 1,
       "style": 1
     },
-    "manifestItems": 2,
-    "missingTargets": 0
+    "manifestItems": 3,
+    "missingTargets": 1
   },
   "paragraphs": [
     "OpenHWP Studio 샘플 문서",

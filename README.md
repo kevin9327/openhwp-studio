@@ -39,6 +39,7 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - 패키지 인스펙터: 섹션, 스타일, 관계, 미디어, 표/각주/머리말 위험도를 한 화면에서 확인
 - 패키지 탐색기: ZIP entry, manifest target, media, doctor issue를 브라우저에서 바로 전환 확인
 - 패키지 닥터: HWPX 필수 entry, XML 파싱, 미디어 참조, 미지원 컨트롤을 점수와 repair plan으로 표시
+- 복구 프리뷰: auto/manual/blocked/verify repair mode를 분리하고, 깨진 manifest target 샘플로 바로 검증
 - 문서 검수 UX: 개요, 통계, 품질 규칙, 변환을 한 화면에 배치
 - 엔진 친화: `@rhwp/core` 위에 사용자 경험과 워크플로를 얹는 구조
 
@@ -49,6 +50,7 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - HWPX 패키지 인스펙터: 엔트리, 섹션, 스타일, 관계, 미디어, 표/각주/도형 감지
 - HWPX 패키지 탐색기: entry 종류/크기, manifest target 존재 여부, media 참조 상태, doctor issue 목록
 - HWPX 패키지 닥터: 구조 건강 점수, 위험 이슈, repair plan, Report JSON schema v2
+- 진단 샘플: `openhwp-broken-rel.hwpx`로 missing manifest target과 repair preview 흐름 확인
 - 기존 HWPX 표를 편집 가능한 표로 표시하고 셀 문단 텍스트 라운드트립 검증
 - 적용/스킵/검증 결과를 담은 Report JSON 내보내기. Report 버튼은 가능한 경우 최신 HWPX 검증을 먼저 실행합니다.
 - 원본 대비 문단/표 셀 변경 추적과 Report JSON diff
@@ -98,7 +100,7 @@ http://localhost:4180
 npm run check
 ```
 
-`check`는 JavaScript 문법, `app.js`가 참조하는 DOM id, `index.html` 정적 자산 계약, 공개 HWPX fixture의 ZIP 구조/문단 추출/패치 라운드트립/패키지 닥터와 탐색기 기대값을 확인합니다.
+`check`는 JavaScript 문법, `app.js`가 참조하는 DOM id, `index.html` 정적 자산 계약, 공개 HWPX fixtures의 ZIP 구조/문단 추출/패치 라운드트립/패키지 닥터/탐색기/repair mode 기대값을 확인합니다.
 
 샘플 HWPX를 재생성하려면:
 

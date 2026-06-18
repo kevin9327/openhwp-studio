@@ -85,6 +85,7 @@ fs.writeFileSync(
         status: "ready",
         counts: { danger: 0, warn: 0, info: 1 },
         issues: [{ id: "partial-table-editing", severity: "info" }],
+        repairModes: { auto: 0, manual: 0, blocked: 0, verify: 1 },
       },
       inspector: {
         entryKinds: { manifest: 1, mimetype: 1, section: 1, style: 1 },
@@ -100,3 +101,74 @@ fs.writeFileSync(
 
 console.log(`Wrote ${path.relative(root, fixturePath)}`);
 console.log(`Wrote ${path.relative(root, expectedPath)}`);
+
+const brokenFixtureName = "openhwp-broken-rel.hwpx";
+const brokenFixturePath = path.join(samplesDir, brokenFixtureName);
+const brokenExpectedPath = path.join(samplesDir, "openhwp-broken-rel.expected.json");
+const brokenEntries = [
+  {
+    name: "mimetype",
+    data: "application/hwp+zip",
+  },
+  {
+    name: "Contents/content.hpf",
+    data: `<?xml version="1.0" encoding="UTF-8"?>
+<opf:package xmlns:opf="http://www.idpf.org/2007/opf" version="1.0">
+  <opf:metadata>
+    <opf:title>OpenHWP Studio broken relationship fixture</opf:title>
+    <opf:language>ko</opf:language>
+  </opf:metadata>
+  <opf:manifest>
+    <opf:item id="section0" href="section0.xml" media-type="application/xml"/>
+    <opf:item id="missingSection" href="missing-section1.xml" media-type="application/xml"/>
+    <opf:item id="styles" href="styles.xml" media-type="application/xml"/>
+  </opf:manifest>
+</opf:package>
+`,
+  },
+  {
+    name: "Contents/styles.xml",
+    data: entries.find((entry) => entry.name === "Contents/styles.xml").data,
+  },
+  {
+    name: "Contents/section0.xml",
+    data: sectionXml,
+  },
+];
+
+fs.writeFileSync(brokenFixturePath, createZip(brokenEntries));
+fs.writeFileSync(
+  brokenExpectedPath,
+  `${JSON.stringify(
+    {
+      fixture: brokenFixtureName,
+      generatedBy: "scripts/create-sample-hwpx.js",
+      entries: brokenEntries.map((entry) => entry.name),
+      sections: ["Contents/section0.xml"],
+      styles: ["Contents/styles.xml"],
+      relationships: ["Contents/content.hpf"],
+      tableCount: 1,
+      doctor: {
+        score: 85,
+        status: "review",
+        counts: { danger: 0, warn: 1, info: 1 },
+        issues: [
+          { id: "missing-relationship-target", severity: "warn" },
+          { id: "partial-table-editing", severity: "info" },
+        ],
+        repairModes: { auto: 0, manual: 1, blocked: 0, verify: 1 },
+      },
+      inspector: {
+        entryKinds: { manifest: 1, mimetype: 1, section: 1, style: 1 },
+        manifestItems: 3,
+        missingTargets: 1,
+      },
+      paragraphs,
+    },
+    null,
+    2,
+  )}\n`,
+);
+
+console.log(`Wrote ${path.relative(root, brokenFixturePath)}`);
+console.log(`Wrote ${path.relative(root, brokenExpectedPath)}`);
