@@ -4,6 +4,8 @@
 
 > Status: alpha. 지금은 HWPX 문단 편집과 구조 보존 저장에 집중합니다. HWP 바이너리는 `rhwp` 기반 미리보기/변환 흐름으로 다룹니다.
 
+**Live demo:** https://kevin9327.github.io/openhwp-studio/
+
 ![OpenHWP Studio screenshot](docs/assets/openhwp-studio.jpg)
 
 ## 한 줄 포지션

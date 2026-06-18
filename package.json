@@ -4,7 +4,7 @@
   "private": false,
   "description": "Local-first browser workspace for opening, inspecting, editing, and converting Korean HWPX/HWP documents.",
   "type": "commonjs",
-  "homepage": "https://github.com/kevin9327/openhwp-studio#readme",
+  "homepage": "https://kevin9327.github.io/openhwp-studio/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kevin9327/openhwp-studio.git"
