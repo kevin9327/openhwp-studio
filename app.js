@@ -3,6 +3,18 @@ const PROJECT_URL = "https://github.com/kevin9327/openhwp-studio";
 const DEMO_URL = "https://kevin9327.github.io/openhwp-studio/";
 const PROJECT_SHARE_TEXT =
   "OpenHWP Studio: 한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 검사하고, 고치고, 변환하는 로컬 우선 오픈소스 작업대.";
+const KOREAN_LAUNCH_POST = `한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 검사하고, 고치고, 변환하는 오픈소스 작업대 OpenHWP Studio를 공개했습니다.
+
+- 로컬 우선: 문서를 서버로 올리지 않음
+- HWPX 문단/표 셀 편집
+- 패키지 닥터: manifest, media, section, repair plan 검사
+- broken HWPX 샘플에서 안전한 자동 복구본 다운로드
+- 공개 synthetic HWPX fixture 3개와 CI 검증
+
+Demo: ${DEMO_URL}
+GitHub: ${PROJECT_URL}
+
+한국 HWPX 문서 도구가 필요하다고 느꼈다면 star로 신호를 주세요. 공개 가능한 샘플/호환성 리포트도 큰 도움이 됩니다.`;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -40,6 +52,7 @@ const els = {
   exportHwpxButton: $("#exportHwpxButton"),
   exportTextButton: $("#exportTextButton"),
   printButton: $("#printButton"),
+  copyLaunchPostButton: $("#copyLaunchPostButton"),
   dropZone: $("#dropZone"),
   documentSurface: $("#documentSurface"),
   fileNameLabel: $("#fileNameLabel"),
@@ -99,6 +112,7 @@ function boot() {
   els.exportHwpxButton.addEventListener("click", exportHwpx);
   els.exportTextButton.addEventListener("click", () => downloadText("txt"));
   els.printButton.addEventListener("click", () => window.print());
+  els.copyLaunchPostButton.addEventListener("click", copyLaunchPost);
   $$(".share-project-button").forEach((button) => button.addEventListener("click", shareProject));
   els.refreshOutline.addEventListener("click", updateAll);
   els.findInput.addEventListener("input", updateSearch);
@@ -288,6 +302,11 @@ async function shareProject() {
     await copyText(text);
     els.engineStatus.textContent = "Share text copied";
   }
+}
+
+async function copyLaunchPost() {
+  await copyText(KOREAN_LAUNCH_POST);
+  els.engineStatus.textContent = "Launch post copied";
 }
 
 async function loadFile(file) {

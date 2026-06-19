@@ -91,6 +91,8 @@ GitHub: https://github.com/kevin9327/openhwp-studio
 - Post the English post to one open-source or document-format community.
 - Send the direct message to 5 people who have dealt with HWPX/HWP documents.
 - Use the live demo's `Share` button when sending quick messages from a phone or browser.
+- Use the live demo's `Copy Post` button for the Korean short post.
+- Use the live demo's `Submit HN` button only for a feedback-oriented Show HN submission.
 - Ask testers to click the live demo first, then star the GitHub repo if the direction is useful.
 - Ask for one compatibility report using a public or synthetic sample.
 
