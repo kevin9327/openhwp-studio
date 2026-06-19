@@ -14,6 +14,8 @@
 
 **Compatibility matrix:** [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 
+**Need this project to exist?** [Star the repo](https://github.com/kevin9327/openhwp-studio) so Korean HWPX/HWP tooling gets a stronger open-source signal.
+
 ![OpenHWP Studio screenshot](docs/assets/openhwp-studio.jpg)
 
 ## 한 줄 포지션
