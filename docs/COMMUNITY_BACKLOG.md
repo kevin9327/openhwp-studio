@@ -16,7 +16,7 @@ The highest-value contribution is a public, synthetic, or sanitized HWPX/HWP sam
 | P1 | Add headers, footers, and footnotes fixture | compatibility, fixture | Turns common public-sector document structures into tested compatibility claims. |
 | P1 | Add merged-table fixture and geometry warning | compatibility, table | Clarifies which table edits are safe and which require visual verification. |
 | P2 | Pin CDN dependencies as local vendor assets | security, build | Improves offline readiness and reduces supply-chain uncertainty for sensitive document workflows. |
-| P2 | Add PWA offline install path | enhancement, offline | Makes the demo feel like a real utility that can run without network after install. |
+| P2 | Harden installed PWA offline mode | enhancement, offline | Pins runtime assets locally so the installed app can run without CDN access after install. |
 | P2 | Add CLI validator using the same fixture contracts | cli, automation | Helps agencies, schools, and developers batch-check HWPX files outside the browser UI. |
 
 ## Issue Quality Bar

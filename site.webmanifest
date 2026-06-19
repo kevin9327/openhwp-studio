@@ -1,8 +1,9 @@
 {
   "name": "OpenHWP Studio",
   "short_name": "OpenHWP",
-  "description": "Local-first browser workspace for Korean HWPX/HWP documents.",
-  "start_url": "./",
+  "description": "Local-first browser workspace for inspecting, repairing, editing, and converting Korean HWPX/HWP documents.",
+  "start_url": "./?sample=doctor",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#edf2f7",
   "theme_color": "#2563eb",

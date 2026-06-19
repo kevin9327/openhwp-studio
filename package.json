@@ -15,7 +15,7 @@
   "scripts": {
     "start": "node server.js",
     "samples:generate": "node scripts/create-sample-hwpx.js",
-    "check": "node scripts/check-static-contracts.js && node scripts/check-hwpx-fixtures.js && node scripts/check-export-format.js && node --check app.js && node --check server.js && node --check export-format-utils.js && node --check scripts/check-static-contracts.js && node --check scripts/hwpx-fixture-utils.js && node --check scripts/create-sample-hwpx.js && node --check scripts/check-hwpx-fixtures.js && node --check scripts/check-export-format.js"
+    "check": "node scripts/check-static-contracts.js && node scripts/check-hwpx-fixtures.js && node scripts/check-export-format.js && node --check app.js && node --check service-worker.js && node --check server.js && node --check export-format-utils.js && node --check scripts/check-static-contracts.js && node --check scripts/hwpx-fixture-utils.js && node --check scripts/create-sample-hwpx.js && node --check scripts/check-hwpx-fixtures.js && node --check scripts/check-export-format.js"
   },
   "keywords": [
     "hwp",

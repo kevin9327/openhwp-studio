@@ -17,7 +17,7 @@ OpenHWP Studio is a local-first browser workbench for opening, inspecting, repai
 | Try sample HWPX files | [Open the repair sample](https://kevin9327.github.io/openhwp-studio/?sample=doctor), or use **Sample**, **Media**, and **Doctor** in the demo |
 | Signal demand | [Star the GitHub repo](https://github.com/kevin9327/openhwp-studio) |
 | Report compatibility | [Open a compatibility report](https://github.com/kevin9327/openhwp-studio/issues/new?template=compatibility_report.yml) |
-| Share the launch | Use **Share**, **Copy Post**, or **Submit HN** in the live demo |
+| Share the launch | Use **Share**, **Copy Post**, **Install**, or **Submit HN** in the live demo |
 
 **Alpha release notes:** [v0.1.0-alpha.0](docs/releases/v0.1.0-alpha.0.md)
 
@@ -38,6 +38,7 @@ OpenHWP Studio is a local-first browser workbench for opening, inspecting, repai
 - **진단**: 깨진 manifest target과 누락된 `mimetype`을 보고, 안전한 자동 복구본을 다운로드합니다.
 - **Report**: 저장/복구/호환성 결과를 JSON으로 남겨 “무엇이 보존됐는지” 확인합니다.
 - **Share / Copy Post / Star**: 데모에서 바로 공유 문구를 복사하고 GitHub 저장소나 HN 제출 화면으로 이동합니다.
+- **Install**: PWA 설치 프롬프트와 서비스워커 캐시로 샘플 중심 작업대를 앱처럼 다시 열 수 있습니다.
 
 ## 30초 데모
 

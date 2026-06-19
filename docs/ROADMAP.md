@@ -28,6 +28,7 @@ OpenHWP Studio aims to become the default open-source HWPX workbench for Korean 
 - Existing HWPX table rendering with cell paragraph text round-trip checks.
 - Shared TXT/Markdown/HTML/JSON export formatter with table-aware CI contracts.
 - Paragraph and source-table cell change tracking included in JSON/Report exports.
+- PWA install prompt with a service-worker cache for the app shell and public samples.
 - Compatibility matrix, roadmap, launch note, issue templates, PR template, and CI workflow.
 
 ### 0.2 Trust the HWPX Core
@@ -50,7 +51,7 @@ OpenHWP Studio aims to become the default open-source HWPX workbench for Korean 
 ### 0.4 Automation and Distribution
 
 - Add CLI batch inspection/conversion for schools, agencies, and archives.
-- Add PWA install support with pinned offline assets.
+- Pin offline runtime assets so the installed PWA can run without CDN access.
 - Add GitHub Pages demo with safe public sample files.
 - Add browser extension or file-handler integration for faster local workflows.
 - Add structured JSON output for downstream automation.

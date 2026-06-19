@@ -65,7 +65,7 @@ OpenHWP Studio is an alpha, local-first browser workbench for Korean HWPX/HWP do
 | Firefox desktop | Needs validation | Expected to work for core local file flows, but preview/export coverage should be reported with sample files. |
 | Safari desktop | Needs validation | Needs explicit validation for dynamic WASM imports and file download behavior. |
 | Mobile browsers | Planned | The current workspace is desktop-first. |
-| Offline use | Partial | The app is local-first for documents, but the alpha build loads CDN assets. Pinning and self-hosting dependencies is required before claiming full offline support. |
+| Offline use | Partial | The app has PWA install support and caches the app shell plus public samples. The alpha build still loads CDN runtime assets, so pinning and self-hosting dependencies is required before claiming full offline support. |
 
 ## Data Handling
 

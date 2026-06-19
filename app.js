@@ -40,6 +40,7 @@ const state = {
   previewZoom: 100,
   isDirty: false,
   pendingFileSelection: false,
+  deferredInstallPrompt: null,
 };
 
 const els = {
@@ -115,6 +116,7 @@ function boot() {
   els.printButton.addEventListener("click", () => window.print());
   els.copyLaunchPostButton.addEventListener("click", copyLaunchPost);
   $$(".share-project-button").forEach((button) => button.addEventListener("click", shareProject));
+  $$(".install-app-button").forEach((button) => button.addEventListener("click", installApp));
   els.refreshOutline.addEventListener("click", updateAll);
   els.findInput.addEventListener("input", updateSearch);
   els.replaceButton.addEventListener("click", replaceAll);
@@ -182,6 +184,8 @@ function boot() {
   updatePreviewControls();
 
   if (window.lucide) window.lucide.createIcons();
+  registerServiceWorker();
+  setupInstallPrompt();
   createStarterDocument();
   loadInitialSampleFromQuery();
   exposePublicApi();
@@ -325,6 +329,53 @@ async function shareProject() {
     }
     await copyText(text);
     els.engineStatus.textContent = "Share text copied";
+  }
+}
+
+function setupInstallPrompt() {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    state.deferredInstallPrompt = event;
+    setInstallButtonsVisible(true);
+  });
+
+  window.addEventListener("appinstalled", () => {
+    state.deferredInstallPrompt = null;
+    setInstallButtonsVisible(false);
+    els.engineStatus.textContent = "App installed";
+  });
+}
+
+function setInstallButtonsVisible(visible) {
+  $$(".install-app-button").forEach((button) => {
+    button.hidden = !visible;
+  });
+}
+
+async function installApp() {
+  if (!state.deferredInstallPrompt) {
+    els.engineStatus.textContent = "Install unavailable";
+    return;
+  }
+  const promptEvent = state.deferredInstallPrompt;
+  state.deferredInstallPrompt = null;
+  promptEvent.prompt();
+  const choice = await promptEvent.userChoice;
+  if (choice.outcome === "accepted") {
+    els.engineStatus.textContent = "Install accepted";
+    setInstallButtonsVisible(false);
+  } else {
+    els.engineStatus.textContent = "Install dismissed";
+  }
+}
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.register("./service-worker.js");
+    if (registration.installing) els.engineStatus.textContent = "Offline cache installing";
+  } catch (error) {
+    console.warn("Service worker registration failed", error);
   }
 }
 
