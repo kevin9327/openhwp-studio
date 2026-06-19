@@ -42,10 +42,11 @@ a.command {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: 64px 1fr;
+  grid-template-rows: auto auto 1fr;
 }
 
 .topbar {
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -100,6 +101,46 @@ a.command {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.launch-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px;
+  background: #ecfeff;
+  border-bottom: 1px solid #bae6fd;
+}
+
+.launch-copy {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.launch-copy strong {
+  font-size: 13px;
+}
+
+.launch-copy span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.launch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.launch-actions .command {
+  min-height: 32px;
+  padding: 0 10px;
 }
 
 .drop-actions {
@@ -701,22 +742,25 @@ mark.search-hit {
 
 @media (max-width: 760px) {
   .app-shell {
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
   }
 
   .topbar,
+  .launch-strip,
   .workspace,
   .right-panel {
     display: flex;
     flex-direction: column;
   }
 
-  .topbar {
+  .topbar,
+  .launch-strip {
     align-items: stretch;
     padding: 12px;
   }
 
-  .top-actions {
+  .top-actions,
+  .launch-actions {
     justify-content: flex-start;
   }
 

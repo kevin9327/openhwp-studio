@@ -40,7 +40,6 @@ const els = {
   exportHwpxButton: $("#exportHwpxButton"),
   exportTextButton: $("#exportTextButton"),
   printButton: $("#printButton"),
-  shareProjectButton: $("#shareProjectButton"),
   dropZone: $("#dropZone"),
   documentSurface: $("#documentSurface"),
   fileNameLabel: $("#fileNameLabel"),
@@ -100,7 +99,7 @@ function boot() {
   els.exportHwpxButton.addEventListener("click", exportHwpx);
   els.exportTextButton.addEventListener("click", () => downloadText("txt"));
   els.printButton.addEventListener("click", () => window.print());
-  els.shareProjectButton.addEventListener("click", shareProject);
+  $$(".share-project-button").forEach((button) => button.addEventListener("click", shareProject));
   els.refreshOutline.addEventListener("click", updateAll);
   els.findInput.addEventListener("input", updateSearch);
   els.replaceButton.addEventListener("click", replaceAll);
