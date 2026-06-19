@@ -28,6 +28,7 @@
 - **Media**: 다중 section HWPX와 `BinData` 미디어 참조를 검사합니다.
 - **진단**: 깨진 manifest target과 누락된 `mimetype`을 보고, 안전한 자동 복구본을 다운로드합니다.
 - **Report**: 저장/복구/호환성 결과를 JSON으로 남겨 “무엇이 보존됐는지” 확인합니다.
+- **Share / Star**: 데모에서 바로 공유 문구를 복사하고 GitHub 저장소로 이동합니다.
 
 ## 30초 데모
 

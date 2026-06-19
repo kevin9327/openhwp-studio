@@ -1,4 +1,8 @@
 const RHWP_URL = "https://cdn.jsdelivr.net/npm/@rhwp/core@0.7.15/+esm";
+const PROJECT_URL = "https://github.com/kevin9327/openhwp-studio";
+const DEMO_URL = "https://kevin9327.github.io/openhwp-studio/";
+const PROJECT_SHARE_TEXT =
+  "OpenHWP Studio: 한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 검사하고, 고치고, 변환하는 로컬 우선 오픈소스 작업대.";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -36,6 +40,7 @@ const els = {
   exportHwpxButton: $("#exportHwpxButton"),
   exportTextButton: $("#exportTextButton"),
   printButton: $("#printButton"),
+  shareProjectButton: $("#shareProjectButton"),
   dropZone: $("#dropZone"),
   documentSurface: $("#documentSurface"),
   fileNameLabel: $("#fileNameLabel"),
@@ -95,6 +100,7 @@ function boot() {
   els.exportHwpxButton.addEventListener("click", exportHwpx);
   els.exportTextButton.addEventListener("click", () => downloadText("txt"));
   els.printButton.addEventListener("click", () => window.print());
+  els.shareProjectButton.addEventListener("click", shareProject);
   els.refreshOutline.addEventListener("click", updateAll);
   els.findInput.addEventListener("input", updateSearch);
   els.replaceButton.addEventListener("click", replaceAll);
@@ -258,6 +264,30 @@ async function loadBundledSample(url, fileName) {
     await loadFile(file);
   } catch (error) {
     alert(error.message);
+  }
+}
+
+async function shareProject() {
+  const text = `${PROJECT_SHARE_TEXT}\n\nDemo: ${DEMO_URL}\nGitHub: ${PROJECT_URL}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: "OpenHWP Studio",
+        text: PROJECT_SHARE_TEXT,
+        url: DEMO_URL,
+      });
+      els.engineStatus.textContent = "Share ready";
+      return;
+    }
+    await copyText(text);
+    els.engineStatus.textContent = "Share text copied";
+  } catch (error) {
+    if (error.name === "AbortError") {
+      els.engineStatus.textContent = "Share canceled";
+      return;
+    }
+    await copyText(text);
+    els.engineStatus.textContent = "Share text copied";
   }
 }
 

@@ -173,6 +173,18 @@ a.command {
   background: #0f766e;
 }
 
+.command.share-cta {
+  color: #0f172a;
+  border-color: #99f6e4;
+  background: #ccfbf1;
+  font-weight: 700;
+}
+
+.command.share-cta:hover {
+  border-color: #14b8a6;
+  background: #99f6e4;
+}
+
 .command svg,
 .icon-command svg,
 .mini-button svg {
