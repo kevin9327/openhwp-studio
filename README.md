@@ -4,11 +4,20 @@
 [![Pages](https://github.com/kevin9327/openhwp-studio/actions/workflows/pages.yml/badge.svg)](https://github.com/kevin9327/openhwp-studio/actions/workflows/pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+OpenHWP Studio is a local-first browser workbench for opening, inspecting, repairing, editing, and converting Korean HWPX/HWP documents.
+
 한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 고치고, 점검하고, 변환하는 로컬 우선 문서 작업대입니다.
 
 > Status: alpha. 지금은 HWPX 문단 편집과 구조 보존 저장에 집중합니다. HWP 바이너리는 `rhwp` 기반 미리보기/변환 흐름으로 다룹니다.
 
 **Live demo:** https://kevin9327.github.io/openhwp-studio/
+
+| Fast path | Link |
+| --- | --- |
+| Try sample HWPX files | [Open the live demo](https://kevin9327.github.io/openhwp-studio/) and use **Sample**, **Media**, or **Doctor** |
+| Signal demand | [Star the GitHub repo](https://github.com/kevin9327/openhwp-studio) |
+| Report compatibility | [Open a compatibility report](https://github.com/kevin9327/openhwp-studio/issues/new?template=compatibility_report.yml) |
+| Share the launch | Use **Share**, **Copy Post**, or **Submit HN** in the live demo |
 
 **Alpha release notes:** [v0.1.0-alpha.0](docs/releases/v0.1.0-alpha.0.md)
 
