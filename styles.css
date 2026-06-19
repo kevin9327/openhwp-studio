@@ -35,6 +35,10 @@ button {
   cursor: pointer;
 }
 
+a.command {
+  text-decoration: none;
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -155,6 +159,18 @@ button {
   color: #fff;
   border-color: var(--blue);
   background: var(--blue);
+}
+
+.command.github-cta {
+  color: #fff;
+  border-color: #111827;
+  background: #111827;
+  font-weight: 700;
+}
+
+.command.github-cta:hover {
+  border-color: #0f766e;
+  background: #0f766e;
 }
 
 .command svg,

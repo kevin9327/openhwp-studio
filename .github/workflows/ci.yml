@@ -55,10 +55,13 @@ jobs:
           required_files=(
             "docs/COMPATIBILITY.md"
             "docs/COMMUNITY_BACKLOG.md"
+            "docs/LAUNCH_POSTS.md"
             "docs/ROADMAP.md"
             "docs/LAUNCH_KO.md"
             "docs/releases/v0.1.0-alpha.0.md"
             "CHANGELOG.md"
+            "robots.txt"
+            "sitemap.xml"
             ".github/roadmap-issues.json"
             ".github/ISSUE_TEMPLATE/bug_report.yml"
             ".github/ISSUE_TEMPLATE/compatibility_report.yml"

@@ -88,6 +88,7 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 실제 GitHub Issues가 비어 있더라도 방향을 잃지 않도록 starter backlog를 문서화했습니다.
 
 - [Community Backlog](docs/COMMUNITY_BACKLOG.md)
+- [Launch Posts](docs/LAUNCH_POSTS.md)
 - [Compatibility report template](.github/ISSUE_TEMPLATE/compatibility_report.yml)
 - [Roadmap](docs/ROADMAP.md)
 
