@@ -92,3 +92,22 @@ GitHub: https://github.com/kevin9327/openhwp-studio
 - Send the direct message to 5 people who have dealt with HWPX/HWP documents.
 - Ask testers to click the live demo first, then star the GitHub repo if the direction is useful.
 - Ask for one compatibility report using a public or synthetic sample.
+
+## Where To Post First
+
+Use neutral, feedback-oriented language in public communities. Do not ask for upvotes. On Hacker News, submit the original source and let people vote naturally.
+
+| Channel | URL | Suggested angle |
+| --- | --- | --- |
+| Hacker News Submit | https://news.ycombinator.com/submit | `Show HN: OpenHWP Studio - local-first browser workbench for Korean HWPX/HWP documents` |
+| Reddit r/rust | https://www.reddit.com/r/rust/ | Mention the `rhwp`/WASM angle and ask for parser/workflow feedback. |
+| Reddit r/korea | https://www.reddit.com/r/korea/ | Focus on the Korean HWP/HWPX document pain, not implementation details. |
+| Korean developer groups list | https://github.com/ragingwind/awesome-korean-developer-groups | Pick one group where document tooling or web apps are on-topic. |
+| Awesome Korean FOSS | https://github.com/darjeeling/awesome-kr-foss | Submit later, after a few external users confirm the demo works. |
+
+## Posting Rules
+
+- Ask for feedback, compatibility reports, and public/synthetic samples.
+- Do not ask for upvotes in communities where that violates norms.
+- Put the star ask on the project page and README, not as the main public-post call to action.
+- Reply to comments manually and honestly. Do not paste generic AI replies.
