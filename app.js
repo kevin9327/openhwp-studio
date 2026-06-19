@@ -30,6 +30,7 @@ const els = {
   openButton: $("#openButton"),
   emptyOpenButton: $("#emptyOpenButton"),
   sampleOpenButton: $("#sampleOpenButton"),
+  mediaSampleButton: $("#mediaSampleButton"),
   diagnosticSampleButton: $("#diagnosticSampleButton"),
   newButton: $("#newButton"),
   exportHwpxButton: $("#exportHwpxButton"),
@@ -86,6 +87,7 @@ function boot() {
   els.emptyOpenButton.addEventListener("click", openFilePicker);
   els.fileInput.addEventListener("change", onFileInput);
   els.sampleOpenButton.addEventListener("click", loadSampleDocument);
+  els.mediaSampleButton.addEventListener("click", loadMediaSampleDocument);
   els.diagnosticSampleButton.addEventListener("click", loadDiagnosticSampleDocument);
   els.newButton.addEventListener("click", () => {
     if (confirmDiscardDirty()) createStarterDocument();
@@ -236,6 +238,10 @@ async function onFileInput(event) {
 
 async function loadSampleDocument() {
   await loadBundledSample("./samples/openhwp-basic.hwpx", "openhwp-basic.hwpx");
+}
+
+async function loadMediaSampleDocument() {
+  await loadBundledSample("./samples/openhwp-media.hwpx", "openhwp-media.hwpx");
 }
 
 async function loadDiagnosticSampleDocument() {

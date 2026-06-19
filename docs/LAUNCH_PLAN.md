@@ -44,7 +44,7 @@ Claim:
 
 - Publish GitHub repository with MIT license.
 - Add screenshots and a GIF.
-- Add 3 public sample HWPX files.
+- Keep the 3 public sample HWPX files visible in the demo: basic, media/BinData, and broken-relationship repair.
 - Open issues for roadmap items.
 - Submit to GitHub topics: `hwp`, `hwpx`, `hancom`, `korean`, `document-editor`, `rhwp`.
 - Post Korean launch note: "한컴 없이 HWPX 열고 고치는 로컬 웹앱".

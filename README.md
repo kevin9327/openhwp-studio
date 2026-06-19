@@ -18,7 +18,7 @@
 2. 문단을 바로 수정하고 문서 개요, 통계, 품질 점검을 확인합니다.
 3. 원본 HWPX 패키지 구조를 유지한 채 저장하고, 라운드트립 검증 리포트까지 확인합니다.
 
-처음 보는 사람은 라이브 데모에서 **샘플 열기**를 눌러 바로 HWPX fixture를 열 수 있습니다.
+처음 보는 사람은 라이브 데모에서 **샘플**, **Media**, **진단** 버튼으로 basic, media/BinData, broken-relationship HWPX fixture를 바로 열 수 있습니다.
 
 ## 왜 필요한가
 
@@ -102,7 +102,7 @@ http://localhost:4180
 npm run check
 ```
 
-`check`는 JavaScript 문법, `app.js`가 참조하는 DOM id, `index.html` 정적 자산 계약, 공개 HWPX fixtures의 ZIP 구조/문단 추출/패치 라운드트립/패키지 닥터/탐색기/repair mode/auto repair 기대값을 확인합니다.
+`check`는 JavaScript 문법, `app.js`가 참조하는 DOM id, `index.html` 정적 자산 계약, 공개 HWPX fixtures의 ZIP 구조/다중 section 문단 추출/media 감지/패치 라운드트립/패키지 닥터/탐색기/repair mode/auto repair 기대값을 확인합니다.
 
 샘플 HWPX를 재생성하려면:
 

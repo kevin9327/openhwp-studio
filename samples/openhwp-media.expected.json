@@ -1,0 +1,67 @@
+{
+  "fixture": "openhwp-media.hwpx",
+  "generatedBy": "scripts/create-sample-hwpx.js",
+  "entries": [
+    "mimetype",
+    "Contents/content.hpf",
+    "Contents/styles.xml",
+    "Contents/section0.xml",
+    "Contents/section1.xml",
+    "BinData/preview.svg"
+  ],
+  "sections": [
+    "Contents/section0.xml",
+    "Contents/section1.xml"
+  ],
+  "styles": [
+    "Contents/styles.xml"
+  ],
+  "relationships": [
+    "Contents/content.hpf"
+  ],
+  "tableCount": 0,
+  "doctor": {
+    "score": 85,
+    "status": "review",
+    "counts": {
+      "danger": 0,
+      "warn": 1,
+      "info": 1
+    },
+    "issues": [
+      {
+        "id": "media-preserved",
+        "severity": "info"
+      },
+      {
+        "id": "unsupported-controls",
+        "severity": "warn"
+      }
+    ],
+    "repairModes": {
+      "auto": 0,
+      "manual": 1,
+      "blocked": 0,
+      "verify": 1
+    }
+  },
+  "inspector": {
+    "entryKinds": {
+      "manifest": 1,
+      "media": 1,
+      "mimetype": 1,
+      "section": 2,
+      "style": 1
+    },
+    "manifestItems": 4,
+    "missingTargets": 0
+  },
+  "paragraphs": [
+    "OpenHWP Studio media fixture",
+    "Section 1 verifies regular paragraph extraction.",
+    "The package includes one referenced BinData SVG asset.",
+    "Section 2 verifies multi-section ordering.",
+    "Image content is preserved but not edited in the app.",
+    "Use Package Explorer > Media to audit the reference."
+  ]
+}

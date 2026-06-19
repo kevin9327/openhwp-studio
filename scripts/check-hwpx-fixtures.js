@@ -31,11 +31,11 @@ function checkFixture(expected) {
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   assert(JSON.stringify(sectionPaths) === JSON.stringify(expected.sections), `Unexpected sections in ${expected.fixture}: ${sectionPaths.join(", ")}`);
 
-  const sectionXml = entries.get(sectionPaths[0]).toString("utf8");
-  const paragraphs = extractTextNodes(sectionXml);
+  const sectionXmls = sectionPaths.map((sectionPath) => entries.get(sectionPath).toString("utf8"));
+  const paragraphs = sectionXmls.flatMap((sectionXml) => extractTextNodes(sectionXml));
   assert(JSON.stringify(paragraphs) === JSON.stringify(expected.paragraphs), `Fixture paragraph extraction mismatch in ${expected.fixture}`);
 
-  const tableCount = (sectionXml.match(/<(?!\/)[^:>]*:?tbl\b/g) || []).length;
+  const tableCount = sectionXmls.reduce((total, sectionXml) => total + (sectionXml.match(/<(?!\/)[^:>]*:?tbl\b/g) || []).length, 0);
   assert(tableCount === expected.tableCount, `Expected ${expected.tableCount} table(s), found ${tableCount} in ${expected.fixture}`);
 
   for (const name of expected.styles) {
@@ -50,7 +50,7 @@ function checkFixture(expected) {
   assert(inspector.manifestItems === expected.inspector.manifestItems, `Expected ${expected.inspector.manifestItems} manifest items, found ${inspector.manifestItems} in ${expected.fixture}`);
   assert(inspector.missingTargets === expected.inspector.missingTargets, `Expected ${expected.inspector.missingTargets} missing targets, found ${inspector.missingTargets} in ${expected.fixture}`);
 
-  const doctor = inspectFixturePackage({ entries, sectionPaths, styles: expected.styles, relationships: expected.relationships, tableCount, paragraphs, inspector });
+  const doctor = inspectFixturePackage({ entries, sectionPaths, sectionXmls, styles: expected.styles, relationships: expected.relationships, tableCount, paragraphs, inspector });
   assert(doctor.score === expected.doctor.score, `Expected doctor score ${expected.doctor.score}, found ${doctor.score} in ${expected.fixture}`);
   assert(doctor.status === expected.doctor.status, `Expected doctor status ${expected.doctor.status}, found ${doctor.status} in ${expected.fixture}`);
   assert(JSON.stringify(doctor.counts) === JSON.stringify(expected.doctor.counts), `Doctor issue counts mismatch in ${expected.fixture}`);
@@ -75,18 +75,24 @@ function checkFixture(expected) {
 
   const patchedText = "OpenHWP Studio patched paragraph";
   const patchedTableCellText = "Patched table cell";
+  const patchableSectionPath = sectionPaths.find((sectionPath) => entries.get(sectionPath).toString("utf8").includes(expected.paragraphs[3]));
   const patchedEntries = [...entries].map(([name, data]) => ({
     name,
     data:
-      name === sectionPaths[0]
-        ? data.toString("utf8").replace(expected.paragraphs[3], patchedText).replace(expected.paragraphs[5], patchedTableCellText)
+      name === patchableSectionPath
+        ? data
+            .toString("utf8")
+            .replace(expected.paragraphs[3], patchedText)
+            .replace(expected.tableCount && expected.paragraphs[5] ? expected.paragraphs[5] : "__no_table_cell__", patchedTableCellText)
         : data,
   }));
   const patchedZip = readZip(createZip(patchedEntries));
-  const patchedParagraphs = extractTextNodes(patchedZip.get(sectionPaths[0]).toString("utf8"));
+  const patchedParagraphs = sectionPaths.flatMap((sectionPath) => extractTextNodes(patchedZip.get(sectionPath).toString("utf8")));
   assert(patchedParagraphs[3] === patchedText, `Patched HWPX round-trip paragraph mismatch in ${expected.fixture}`);
-  assert(patchedParagraphs[4] === expected.paragraphs[4], `Table cell paragraph changed unexpectedly during patch test in ${expected.fixture}`);
-  assert(patchedParagraphs[5] === patchedTableCellText, `Patched HWPX table-cell round-trip mismatch in ${expected.fixture}`);
+  if (expected.tableCount && expected.paragraphs[5]) {
+    assert(patchedParagraphs[4] === expected.paragraphs[4], `Table cell paragraph changed unexpectedly during patch test in ${expected.fixture}`);
+    assert(patchedParagraphs[5] === patchedTableCellText, `Patched HWPX table-cell round-trip mismatch in ${expected.fixture}`);
+  }
 
   console.log(`HWPX fixture OK: ${expected.fixture}`);
   console.log(`Sections: ${sectionPaths.length}, paragraphs: ${paragraphs.length}, tables: ${tableCount}`);
@@ -156,7 +162,7 @@ function normalizeFixturePath(base, target) {
   return normalized.join("/");
 }
 
-function inspectFixturePackage({ entries, sectionPaths, styles, relationships, tableCount, paragraphs, inspector }) {
+function inspectFixturePackage({ entries, sectionPaths, sectionXmls, styles, relationships, tableCount, paragraphs, inspector }) {
   const issues = [];
   const repairModes = { auto: 0, manual: 0, blocked: 0, verify: 0 };
   const addIssue = (severity, id, mode) => {
@@ -171,7 +177,11 @@ function inspectFixturePackage({ entries, sectionPaths, styles, relationships, t
   if (!relationships.some((name) => hasEntry(name))) addIssue("warn", "missing-relationships", "manual");
   if (inspector.missingTargets) addIssue("warn", "missing-relationship-target", "manual");
   if (!paragraphs.length) addIssue("warn", "empty-text", "manual");
+  if ([...entries.keys()].some((name) => classifyFixtureEntry(name) === "media")) addIssue("info", "media-preserved", "verify");
   if (tableCount) addIssue("info", "partial-table-editing", "verify");
+  if (sectionXmls.some((sectionXml) => countLocalName(sectionXml, "pic") || countLocalName(sectionXml, "img") || countLocalName(sectionXml, "image"))) {
+    addIssue("warn", "unsupported-controls", "manual");
+  }
 
   const penalty = issues.reduce((total, issue) => total + ({ danger: 30, warn: 12, info: 3 }[issue.severity] || 0), 0);
   const score = Math.max(0, 100 - penalty);
@@ -186,4 +196,8 @@ function inspectFixturePackage({ entries, sectionPaths, styles, relationships, t
     repairModes,
     issues,
   };
+}
+
+function countLocalName(xml, localName) {
+  return (xml.match(new RegExp(`<(?!\\/)[^:>]*:?${localName}\\b`, "g")) || []).length;
 }

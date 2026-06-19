@@ -23,12 +23,12 @@ OpenHWP Studio should not try to beat every HWP/HWPX project by cloning the same
 - Safe automatic repair export for metadata-only issues, starting with missing HWPX `mimetype`, with verification that original package entries are preserved.
 - Source-preserving HWPX export that clones the original package and verifies paragraph/table-cell text round-trips.
 - Report JSON schema v2 with package doctor, compatibility snapshot, change diff, latest export verification, and package entry preservation.
-- Public synthetic HWPX fixtures with CI checks for ZIP entries, section text extraction, table detection, package doctor/explorer expectations, repair modes, and patch round-trip.
+- Public synthetic HWPX fixtures with CI checks for ZIP entries, multi-section text extraction, media/BinData detection, table detection, package doctor/explorer expectations, repair modes, and patch round-trip.
 - Table-aware TXT, Markdown, HTML, and JSON exports from the same editor block model.
 
 ## Next Moves To Beat The Field
 
-1. Add fixture suite coverage for multi-section documents, media/BinData, broken relationships, malformed XML, headers/footers, footnotes, and merged tables.
+1. Add fixture suite coverage for malformed XML, headers/footers, footnotes, merged tables, and broader public-sector document shapes.
 2. Expand safe repaired-package export beyond metadata into relationship cleanup rules with before/after verification.
 3. Expand the package explorer into a relationship graph with media thumbnails and before/after repair previews.
 4. Promote HWP binary ingest from preview-only to a guided HWP -> editable HWPX workflow through `@rhwp/core`.

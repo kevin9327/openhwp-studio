@@ -170,3 +170,113 @@ fs.writeFileSync(
 
 console.log(`Wrote ${path.relative(root, brokenFixturePath)}`);
 console.log(`Wrote ${path.relative(root, brokenExpectedPath)}`);
+
+const mediaFixtureName = "openhwp-media.hwpx";
+const mediaFixturePath = path.join(samplesDir, mediaFixtureName);
+const mediaExpectedPath = path.join(samplesDir, "openhwp-media.expected.json");
+const mediaParagraphs = [
+  "OpenHWP Studio media fixture",
+  "Section 1 verifies regular paragraph extraction.",
+  "The package includes one referenced BinData SVG asset.",
+  "Section 2 verifies multi-section ordering.",
+  "Image content is preserved but not edited in the app.",
+  "Use Package Explorer > Media to audit the reference.",
+];
+const mediaSection0Xml = `<?xml version="1.0" encoding="UTF-8"?>
+<hs:sec xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">
+  <hp:p id="m0"><hp:run><hp:t>${mediaParagraphs[0]}</hp:t></hp:run></hp:p>
+  <hp:p id="m1"><hp:run><hp:t>${mediaParagraphs[1]}</hp:t></hp:run></hp:p>
+  <hp:p id="m2"><hp:run><hp:t>${mediaParagraphs[2]}</hp:t></hp:run></hp:p>
+  <hp:pic id="image0" href="../BinData/preview.svg"/>
+</hs:sec>
+`;
+const mediaSection1Xml = `<?xml version="1.0" encoding="UTF-8"?>
+<hs:sec xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">
+  <hp:p id="m3"><hp:run><hp:t>${mediaParagraphs[3]}</hp:t></hp:run></hp:p>
+  <hp:p id="m4"><hp:run><hp:t>${mediaParagraphs[4]}</hp:t></hp:run></hp:p>
+  <hp:p id="m5"><hp:run><hp:t>${mediaParagraphs[5]}</hp:t></hp:run></hp:p>
+</hs:sec>
+`;
+const mediaEntries = [
+  {
+    name: "mimetype",
+    data: "application/hwp+zip",
+    store: true,
+  },
+  {
+    name: "Contents/content.hpf",
+    data: `<?xml version="1.0" encoding="UTF-8"?>
+<opf:package xmlns:opf="http://www.idpf.org/2007/opf" version="1.0">
+  <opf:metadata>
+    <opf:title>OpenHWP Studio media fixture</opf:title>
+    <opf:language>ko</opf:language>
+  </opf:metadata>
+  <opf:manifest>
+    <opf:item id="section0" href="section0.xml" media-type="application/xml"/>
+    <opf:item id="section1" href="section1.xml" media-type="application/xml"/>
+    <opf:item id="styles" href="styles.xml" media-type="application/xml"/>
+    <opf:item id="preview" href="../BinData/preview.svg" media-type="image/svg+xml"/>
+  </opf:manifest>
+</opf:package>
+`,
+  },
+  {
+    name: "Contents/styles.xml",
+    data: entries.find((entry) => entry.name === "Contents/styles.xml").data,
+  },
+  {
+    name: "Contents/section0.xml",
+    data: mediaSection0Xml,
+  },
+  {
+    name: "Contents/section1.xml",
+    data: mediaSection1Xml,
+  },
+  {
+    name: "BinData/preview.svg",
+    data: `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
+  <rect width="320" height="120" rx="12" fill="#f8fafc"/>
+  <rect x="18" y="18" width="92" height="84" rx="8" fill="#0f766e"/>
+  <circle cx="64" cy="56" r="24" fill="#ffffff" opacity="0.9"/>
+  <path d="M130 38h150M130 60h120M130 82h88" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+</svg>
+`,
+  },
+];
+
+fs.writeFileSync(mediaFixturePath, createZip(mediaEntries));
+fs.writeFileSync(
+  mediaExpectedPath,
+  `${JSON.stringify(
+    {
+      fixture: mediaFixtureName,
+      generatedBy: "scripts/create-sample-hwpx.js",
+      entries: mediaEntries.map((entry) => entry.name),
+      sections: ["Contents/section0.xml", "Contents/section1.xml"],
+      styles: ["Contents/styles.xml"],
+      relationships: ["Contents/content.hpf"],
+      tableCount: 0,
+      doctor: {
+        score: 85,
+        status: "review",
+        counts: { danger: 0, warn: 1, info: 1 },
+        issues: [
+          { id: "media-preserved", severity: "info" },
+          { id: "unsupported-controls", severity: "warn" },
+        ],
+        repairModes: { auto: 0, manual: 1, blocked: 0, verify: 1 },
+      },
+      inspector: {
+        entryKinds: { manifest: 1, media: 1, mimetype: 1, section: 2, style: 1 },
+        manifestItems: 4,
+        missingTargets: 0,
+      },
+      paragraphs: mediaParagraphs,
+    },
+    null,
+    2,
+  )}\n`,
+);
+
+console.log(`Wrote ${path.relative(root, mediaFixturePath)}`);
+console.log(`Wrote ${path.relative(root, mediaExpectedPath)}`);
