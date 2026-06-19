@@ -1,6 +1,7 @@
 const RHWP_URL = "https://cdn.jsdelivr.net/npm/@rhwp/core@0.7.15/+esm";
 const PROJECT_URL = "https://github.com/kevin9327/openhwp-studio";
 const DEMO_URL = "https://kevin9327.github.io/openhwp-studio/";
+const DEMO_SAMPLE_URL = `${DEMO_URL}?sample=doctor`;
 const PROJECT_SHARE_TEXT =
   "OpenHWP Studio: 한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 검사하고, 고치고, 변환하는 로컬 우선 오픈소스 작업대.";
 const KOREAN_LAUNCH_POST = `한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 검사하고, 고치고, 변환하는 오픈소스 작업대 OpenHWP Studio를 공개했습니다.
@@ -11,7 +12,7 @@ const KOREAN_LAUNCH_POST = `한컴 설치 없이 브라우저에서 HWPX/HWP 문
 - broken HWPX 샘플에서 안전한 자동 복구본 다운로드
 - 공개 synthetic HWPX fixture 3개와 CI 검증
 
-Demo: ${DEMO_URL}
+Demo: ${DEMO_SAMPLE_URL}
 GitHub: ${PROJECT_URL}
 
 한국 HWPX 문서 도구가 필요하다고 느꼈다면 star로 신호를 주세요. 공개 가능한 샘플/호환성 리포트도 큰 도움이 됩니다.`;
@@ -182,6 +183,7 @@ function boot() {
 
   if (window.lucide) window.lucide.createIcons();
   createStarterDocument();
+  loadInitialSampleFromQuery();
   exposePublicApi();
 }
 
@@ -267,6 +269,28 @@ async function loadDiagnosticSampleDocument() {
   await loadBundledSample("./samples/openhwp-broken-rel.hwpx", "openhwp-broken-rel.hwpx");
 }
 
+function loadInitialSampleFromQuery() {
+  const sample = new URLSearchParams(window.location.search).get("sample")?.toLowerCase();
+  const loaders = {
+    basic: loadSampleDocument,
+    media: loadMediaSampleDocument,
+    doctor: loadDiagnosticSampleDocument,
+    diagnostic: loadDiagnosticSampleDocument,
+    repair: loadDiagnosticSampleDocument,
+  };
+  const loader = loaders[sample];
+  if (!sample) return;
+  if (!loader) {
+    els.engineStatus.textContent = "Unknown sample link";
+    return;
+  }
+  els.engineStatus.textContent = `Loading ${sample} sample`;
+  loader().catch((error) => {
+    els.engineStatus.textContent = "Sample load failed";
+    alert(error.message);
+  });
+}
+
 async function loadBundledSample(url, fileName) {
   if (!confirmDiscardDirty()) return;
   try {
@@ -281,13 +305,13 @@ async function loadBundledSample(url, fileName) {
 }
 
 async function shareProject() {
-  const text = `${PROJECT_SHARE_TEXT}\n\nDemo: ${DEMO_URL}\nGitHub: ${PROJECT_URL}`;
+  const text = `${PROJECT_SHARE_TEXT}\n\nDemo: ${DEMO_SAMPLE_URL}\nGitHub: ${PROJECT_URL}`;
   try {
     if (navigator.share) {
       await navigator.share({
         title: "OpenHWP Studio",
         text: PROJECT_SHARE_TEXT,
-        url: DEMO_URL,
+        url: DEMO_SAMPLE_URL,
       });
       els.engineStatus.textContent = "Share ready";
       return;

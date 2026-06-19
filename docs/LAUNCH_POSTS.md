@@ -13,7 +13,7 @@ Use these posts to bring the first real users to OpenHWP Studio. The goal is not
 - broken HWPX 샘플에서 안전한 자동 복구본 다운로드
 - 공개 synthetic HWPX fixture 3개와 CI 검증
 
-Demo: https://kevin9327.github.io/openhwp-studio/
+Demo: https://kevin9327.github.io/openhwp-studio/?sample=doctor
 GitHub: https://github.com/kevin9327/openhwp-studio
 
 한국 HWPX 문서 도구가 필요하다고 느꼈다면 star로 신호를 주세요. 공개 가능한 샘플/호환성 리포트도 큰 도움이 됩니다.
@@ -37,7 +37,7 @@ OpenHWP Studio라는 오픈소스 HWPX/HWP 작업대를 공개했습니다.
 
 공개 demo에 basic, media/BinData, broken-relationship 샘플을 넣어놨습니다.
 
-Demo: https://kevin9327.github.io/openhwp-studio/
+Demo: https://kevin9327.github.io/openhwp-studio/?sample=doctor
 GitHub: https://github.com/kevin9327/openhwp-studio
 
 HWPX/HWP 업무를 해본 분들이 실제 파일 구조, 호환성, 복구 케이스를 알려주면 큰 도움이 됩니다. 필요하다고 생각되면 repo에 star도 부탁드립니다.
@@ -58,7 +58,7 @@ It is not a full Hancom Office replacement. The current focus is inspectable, sa
 - Download a repaired HWPX for safe metadata-only fixes such as missing mimetype
 - Test with public synthetic fixtures in CI
 
-Demo: https://kevin9327.github.io/openhwp-studio/
+Demo: https://kevin9327.github.io/openhwp-studio/?sample=doctor
 GitHub: https://github.com/kevin9327/openhwp-studio
 
 If you work with Korean HWPX/HWP documents, feedback and compatibility reports would help a lot.
@@ -81,7 +81,7 @@ It can open sample HWPX files, inspect package structure, edit paragraph/table-c
 
 Could you try the demo and tell me whether this direction would help your HWPX workflow?
 
-Demo: https://kevin9327.github.io/openhwp-studio/
+Demo: https://kevin9327.github.io/openhwp-studio/?sample=doctor
 GitHub: https://github.com/kevin9327/openhwp-studio
 ```
 

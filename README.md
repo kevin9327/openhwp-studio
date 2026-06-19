@@ -14,7 +14,7 @@ OpenHWP Studio is a local-first browser workbench for opening, inspecting, repai
 
 | Fast path | Link |
 | --- | --- |
-| Try sample HWPX files | [Open the live demo](https://kevin9327.github.io/openhwp-studio/) and use **Sample**, **Media**, or **Doctor** |
+| Try sample HWPX files | [Open the repair sample](https://kevin9327.github.io/openhwp-studio/?sample=doctor), or use **Sample**, **Media**, and **Doctor** in the demo |
 | Signal demand | [Star the GitHub repo](https://github.com/kevin9327/openhwp-studio) |
 | Report compatibility | [Open a compatibility report](https://github.com/kevin9327/openhwp-studio/issues/new?template=compatibility_report.yml) |
 | Share the launch | Use **Share**, **Copy Post**, or **Submit HN** in the live demo |
