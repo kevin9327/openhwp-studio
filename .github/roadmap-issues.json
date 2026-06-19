@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Browser compatibility pass for public samples",
+    "labels": ["compatibility", "good first issue"],
+    "body": "Run the basic, media/BinData, and diagnostic HWPX samples on Chrome, Edge, Firefox, and Safari. Record what opens, what exports, and any console errors. This proves the public demo works across real user browsers."
+  },
+  {
+    "title": "Add malformed XML HWPX fixture",
+    "labels": ["compatibility", "fixture", "repair"],
+    "body": "Add a synthetic HWPX fixture with invalid section XML and expected package doctor output. The fixture should prove that XML parse failures are blocked from unsafe source-preserving export."
+  },
+  {
+    "title": "Add section XML diff view after HWPX export",
+    "labels": ["enhancement", "diff"],
+    "body": "Show a before/after diff for changed section XML after HWPX export. The goal is to make source-preserving edits auditable for schools, agencies, courts, and companies."
+  },
+  {
+    "title": "Add relationship cleanup repair rule",
+    "labels": ["enhancement", "repair"],
+    "body": "Expand safe repair beyond missing root mimetype. Start with a manifest or relationship entry that points to a missing target, then produce a before/after report proving original entries are preserved."
+  },
+  {
+    "title": "Add media thumbnail preview in Package Explorer",
+    "labels": ["enhancement", "media"],
+    "body": "For safe image-like media entries, show a small preview or metadata summary in Package Explorer. Keep the workflow local-first and make unsupported formats explicit."
+  },
+  {
+    "title": "Add headers, footers, and footnotes fixture",
+    "labels": ["compatibility", "fixture"],
+    "body": "Create a synthetic HWPX fixture with header/footer/footnote-like structures and expected doctor warnings. This turns common public-sector layout features into tested compatibility claims."
+  },
+  {
+    "title": "Add merged-table fixture and geometry warning",
+    "labels": ["compatibility", "table"],
+    "body": "Create a synthetic table fixture with merged-cell-like structure. Verify text extraction/export and make geometry limitations visible in the compatibility report."
+  },
+  {
+    "title": "Pin CDN dependencies as local vendor assets",
+    "labels": ["security", "build"],
+    "body": "Replace CDN runtime dependencies with pinned local assets or an audited build step. This is important for offline use and sensitive document workflows."
+  },
+  {
+    "title": "Add PWA offline install path",
+    "labels": ["enhancement", "offline"],
+    "body": "Make the static app installable and usable offline after first load. Keep all document processing local and document the browser support level."
+  },
+  {
+    "title": "Add CLI validator using the same fixture contracts",
+    "labels": ["cli", "automation"],
+    "body": "Expose package doctor and fixture validation as a CLI flow so developers and institutions can batch-check HWPX files outside the browser UI."
+  }
+]

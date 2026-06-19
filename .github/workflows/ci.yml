@@ -54,12 +54,18 @@ jobs:
 
           required_files=(
             "docs/COMPATIBILITY.md"
+            "docs/COMMUNITY_BACKLOG.md"
             "docs/ROADMAP.md"
             "docs/LAUNCH_KO.md"
+            "docs/releases/v0.1.0-alpha.0.md"
+            "CHANGELOG.md"
+            ".github/roadmap-issues.json"
             ".github/ISSUE_TEMPLATE/bug_report.yml"
             ".github/ISSUE_TEMPLATE/compatibility_report.yml"
             ".github/ISSUE_TEMPLATE/feature_request.yml"
             ".github/PULL_REQUEST_TEMPLATE.md"
+            ".github/workflows/release.yml"
+            ".github/workflows/seed-roadmap-issues.yml"
           )
 
           for file in "${required_files[@]}"; do

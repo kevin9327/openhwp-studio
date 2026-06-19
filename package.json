@@ -26,7 +26,13 @@
     "document",
     "editor",
     "viewer",
+    "document-repair",
+    "document-inspection",
+    "korean-documents",
+    "hwpx-editor",
+    "hwpx-viewer",
     "rhwp",
+    "local-first",
     "wasm"
   ],
   "author": "",

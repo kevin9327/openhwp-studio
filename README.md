@@ -1,16 +1,31 @@
 # OpenHWP Studio
 
+[![CI](https://github.com/kevin9327/openhwp-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/kevin9327/openhwp-studio/actions/workflows/ci.yml)
+[![Pages](https://github.com/kevin9327/openhwp-studio/actions/workflows/pages.yml/badge.svg)](https://github.com/kevin9327/openhwp-studio/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 한컴 설치 없이 브라우저에서 HWPX/HWP 문서를 열고, 고치고, 점검하고, 변환하는 로컬 우선 문서 작업대입니다.
 
 > Status: alpha. 지금은 HWPX 문단 편집과 구조 보존 저장에 집중합니다. HWP 바이너리는 `rhwp` 기반 미리보기/변환 흐름으로 다룹니다.
 
 **Live demo:** https://kevin9327.github.io/openhwp-studio/
 
+**Alpha release notes:** [v0.1.0-alpha.0](docs/releases/v0.1.0-alpha.0.md)
+
+**Compatibility matrix:** [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
+
 ![OpenHWP Studio screenshot](docs/assets/openhwp-studio.jpg)
 
 ## 한 줄 포지션
 
 `rhwp`가 엔진이라면, OpenHWP Studio는 한국 문서 실무자가 바로 쓰는 HWPX 작업대입니다.
+
+## 5초 안에 확인할 수 있는 것
+
+- **샘플**: 정상 HWPX를 열고 문단/표 셀 텍스트를 편집합니다.
+- **Media**: 다중 section HWPX와 `BinData` 미디어 참조를 검사합니다.
+- **진단**: 깨진 manifest target과 누락된 `mimetype`을 보고, 안전한 자동 복구본을 다운로드합니다.
+- **Report**: 저장/복구/호환성 결과를 JSON으로 남겨 “무엇이 보존됐는지” 확인합니다.
 
 ## 30초 데모
 
@@ -19,6 +34,8 @@
 3. 원본 HWPX 패키지 구조를 유지한 채 저장하고, 라운드트립 검증 리포트까지 확인합니다.
 
 처음 보는 사람은 라이브 데모에서 **샘플**, **Media**, **진단** 버튼으로 basic, media/BinData, broken-relationship HWPX fixture를 바로 열 수 있습니다.
+
+이 프로젝트가 필요하다고 느꼈다면 star를 눌러 주세요. 한국 HWPX 문서 생태계에서 “로컬 우선, 검증 가능한 오픈소스 작업대”가 필요하다는 신호가 됩니다.
 
 ## 왜 필요한가
 
@@ -65,6 +82,16 @@ OpenHWP Studio는 “또 하나의 뷰어”가 아니라 HWPX 문서를 실제 
 - 찾기/바꾸기, Markdown/HTML/TXT/JSON 내보내기
 - 문서 품질 점검: 제목 누락, 긴 문단, 반복 표현 등
 - 브라우저 인쇄/PDF 저장
+
+## 참여하기 좋은 첫 작업
+
+실제 GitHub Issues가 비어 있더라도 방향을 잃지 않도록 starter backlog를 문서화했습니다.
+
+- [Community Backlog](docs/COMMUNITY_BACKLOG.md)
+- [Compatibility report template](.github/ISSUE_TEMPLATE/compatibility_report.yml)
+- [Roadmap](docs/ROADMAP.md)
+
+가장 도움이 되는 기여는 공개 가능하거나 synthetic인 HWPX 샘플과, 그 샘플에서 기대되는 열기/편집/저장/복구 결과입니다.
 
 ## 포지셔닝
 
